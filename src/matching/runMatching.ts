@@ -3,12 +3,11 @@ import { loadEnvFile } from "node:process";
 import { connectToChrome } from "../naukri/browser.js";
 import { ensureNaukriAuthenticated } from "../naukri/auth.js";
 import { getJobsDetails } from "../naukri/getJobDetails.js";
-import { searchJobs } from "../naukri/searchJobs.js";
+import { discoverDirectJobs, type DiscoveryConfig } from "../naukri/discoverDirectJobs.js";
 import { getCandidateProfile } from "../resume/getCandidateProfile.js";
 import { extractResumeText } from "../resume/parseResume.js";
 import { matchJobs } from "./matchJobs.js";
 import type { MatchResult } from "./match.schema.js";
-import { partitionJobsByApplicationType } from "../naukri/applicationType.js";
 
 try {
   loadEnvFile();
@@ -18,11 +17,18 @@ try {
   }
 }
 
-const config = {
-  resumePath: path.resolve("data", "DhruvCVU.pdf"),
-  keyword: "Frontend Developer",
-  location: "Pune",
-  maxJobs: 10,
+function positiveInteger(name: string, fallback: number): number {
+  const value = Number(process.env[name] ?? fallback);
+  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer.`);
+  return value;
+}
+const resumePath = path.resolve("data", "DhruvCVU.pdf");
+const discoveryConfig: DiscoveryConfig = {
+  keyword: process.env.JOB_KEYWORD?.trim() || "Frontend Developer",
+  location: process.env.JOB_LOCATION?.trim() || "Pune",
+  targetDirectJobs: positiveInteger("TARGET_DIRECT_JOBS", 10),
+  maxJobsToInspect: positiveInteger("MAX_JOBS_TO_INSPECT", 60),
+  maxPages: positiveInteger("MAX_SEARCH_PAGES", 5),
 };
 
 function printRanked(matches: MatchResult[]): void {
@@ -54,32 +60,26 @@ function printRanked(matches: MatchResult[]): void {
 }
 
 async function main(): Promise<void> {
-  console.log("Building candidate profile...");
-  const resumeText = await extractResumeText(config.resumePath);
-  const profile = await getCandidateProfile(resumeText);
-  console.log("Profile: READY\n");
-
   console.log("Connecting to Chrome on port 9222...");
   const { page } = await connectToChrome();
   console.log("Connected.\n");
   await ensureNaukriAuthenticated(page);
 
-  console.log("Searching Naukri...\n");
-  const jobs = await searchJobs(
-    page,
-    config.keyword,
-    config.location,
-    config.maxJobs
-  );
-  console.log(`Jobs found: ${jobs.length}\n`);
+  const discovery = await discoverDirectJobs(page, discoveryConfig);
+  console.log(`Direct jobs discovered: ${discovery.directCount}`);
+  console.log(`Manual opportunities: ${discovery.manualJobs.length}\n`);
+  if (discovery.directJobs.length === 0) {
+    console.log("No direct jobs found. Skipping CandidateProfile and AI matching.");
+    return;
+  }
 
-  const detailedJobs = await getJobsDetails(page, jobs.slice(0, config.maxJobs));
+  console.log("Building candidate profile...");
+  const profile = await getCandidateProfile(await extractResumeText(resumePath));
+  console.log("Profile: READY\n");
+  const detailedJobs = await getJobsDetails(page, discovery.directJobs);
   console.log(`Detailed jobs: ${detailedJobs.length}\n`);
-  const applicationTypes = partitionJobsByApplicationType(detailedJobs);
-  console.log(`Direct jobs eligible for AI: ${applicationTypes.directJobs.length}`);
-  console.log(`Manual opportunities: ${detailedJobs.length - applicationTypes.directJobs.length}\n`);
   console.log("Analyzing matches...\n");
-  const matches = await matchJobs(profile, applicationTypes.directJobs);
+  const matches = await matchJobs(profile, detailedJobs);
 
   printRanked(matches);
 
@@ -93,7 +93,7 @@ async function main(): Promise<void> {
 
   console.log("Phase 4 Summary\n");
   console.log(`Jobs analyzed: ${matches.length}`);
-  console.log(`Failed analyses: ${applicationTypes.directJobs.length - matches.length}`);
+  console.log(`Failed analyses: ${detailedJobs.length - matches.length}`);
   console.log(`APPLY: ${counts.APPLY}`);
   console.log(`REVIEW: ${counts.REVIEW}`);
   console.log(`SKIP: ${counts.SKIP}`);

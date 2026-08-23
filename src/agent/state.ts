@@ -3,6 +3,8 @@ import type { DetailedJob } from "../naukri/getJobDetails.js";
 import type { Job } from "../naukri/searchJobs.js";
 import type { CandidateProfile } from "../resume/candidateProfile.schema.js";
 import type { MatchResult } from "../matching/match.schema.js";
+import type { DirectJobDiscoveryResult, ManualJob } from "../naukri/discoverDirectJobs.js";
+import type { ApplyResult, ReadyToApplyJob } from "../application/application.js";
 
 export type JobAgentSummary = {
   totalJobs: number;
@@ -24,12 +26,14 @@ export const JobAgentStateAnnotation = Annotation.Root({
   profile: Annotation<CandidateProfile | undefined>(),
   jobs: replaceArray<Job>(),
   detailedJobs: replaceArray<DetailedJob>(),
-  directJobs: replaceArray<DetailedJob>(),
-  externalJobs: replaceArray<DetailedJob>(),
-  walkInJobs: replaceArray<DetailedJob>(),
-  unknownJobs: replaceArray<DetailedJob>(),
+  directJobs: replaceArray<Job>(),
+  manualJobs: replaceArray<ManualJob>(),
+  discovery: Annotation<Omit<DirectJobDiscoveryResult, "directJobs" | "manualJobs"> | undefined>(),
   matches: replaceArray<MatchResult>(),
   rankedMatches: replaceArray<MatchResult>(),
+  readyToApplyJobs: replaceArray<ReadyToApplyJob>(),
+  selectedApplication: Annotation<ReadyToApplyJob | undefined>(),
+  applicationResult: Annotation<ApplyResult | undefined>(),
   summary: Annotation<JobAgentSummary | undefined>(),
   errors: Annotation<string[]>({ reducer: (left, right) => left.concat(right), default: () => [] }),
 });

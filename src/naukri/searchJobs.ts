@@ -107,12 +107,11 @@ async function extractJob(card: Locator): Promise<Job | null> {
  * Search and extract only - this never clicks Apply or modifies the account.
  *
  */
-export async function searchJobs(
+export async function startJobSearch(
   page: Page,
   keyword: string,
-  location: string,
-  maxJobs: number
-): Promise<Job[]> {
+  location: string
+): Promise<boolean> {
   console.log("Searching:");
   console.log(`Keyword: ${keyword}`);
   console.log(`Location: ${location}`);
@@ -135,11 +134,15 @@ export async function searchJobs(
 
   await page.getByRole("button", { name: "Search", exact: true }).click();
 
-  let hasResults = await waitForResults(page);
+  const hasResults = await waitForResults(page);
   if (!hasResults) {
     console.log(`No jobs found for "${keyword}" in "${location}".`);
-    return [];
+    return false;
   }
+  return true;
+}
+
+export async function extractJobsFromCurrentPage(page: Page, maxJobs = RESULTS_PER_PAGE): Promise<Job[]> {
 
   if (maxJobs > RESULTS_PER_PAGE) {
     console.log(
@@ -165,4 +168,29 @@ export async function searchJobs(
   }
 
   return jobs;
+}
+
+export async function getNextSearchPageUrl(page: Page): Promise<string | null> {
+  const candidates = page.locator("a[href]").filter({ hasText: /^\s*Next\s*$/i });
+  try {
+    await candidates.last().waitFor({ state: "visible", timeout: 5_000 });
+  } catch {
+    return null;
+  }
+  for (const candidate of await candidates.all()) {
+    if (!(await candidate.isVisible())) continue;
+    const href = await candidate.getAttribute("href");
+    if (href) return new URL(href, page.url()).toString();
+  }
+  return null;
+}
+
+export async function openSearchResultsPage(page: Page, url: string): Promise<boolean> {
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  return waitForResults(page);
+}
+
+export async function searchJobs(page: Page, keyword: string, location: string, maxJobs: number): Promise<Job[]> {
+  if (!(await startJobSearch(page, keyword, location))) return [];
+  return extractJobsFromCurrentPage(page, maxJobs);
 }

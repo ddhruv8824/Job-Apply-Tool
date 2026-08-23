@@ -1,13 +1,13 @@
 import type { JobAgentState, JobAgentSummary } from "../state.js";
 
-export function summarize(state: Pick<JobAgentState, "jobs" | "directJobs" | "externalJobs" | "walkInJobs" | "unknownJobs" | "rankedMatches">): JobAgentSummary {
+export function summarize(state: Pick<JobAgentState, "jobs" | "directJobs" | "discovery" | "rankedMatches">): JobAgentSummary {
   const scores = state.rankedMatches.map((match) => match.overallScore);
   const summary: JobAgentSummary = {
     totalJobs: state.jobs.length,
     directJobs: state.directJobs.length,
-    externalJobs: state.externalJobs.length,
-    walkInJobs: state.walkInJobs.length,
-    unknownJobs: state.unknownJobs.length,
+    externalJobs: state.discovery?.externalCount ?? 0,
+    walkInJobs: state.discovery?.walkInCount ?? 0,
+    unknownJobs: state.discovery?.unknownCount ?? 0,
     analyzedJobs: state.rankedMatches.length,
     apply: state.rankedMatches.filter((match) => match.recommendation === "APPLY").length,
     review: state.rankedMatches.filter((match) => match.recommendation === "REVIEW").length,

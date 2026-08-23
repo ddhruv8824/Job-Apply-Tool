@@ -21,7 +21,7 @@ async function main(): Promise<void> {
     console.log(`   Recommendation: ${match.recommendation}`);
     console.log(`   URL: ${match.jobUrl}\n`);
   });
-  const manualJobs = [...result.externalJobs, ...result.walkInJobs, ...result.unknownJobs];
+  const manualJobs = result.manualJobs;
   console.log("================================");
   console.log("MANUAL OPPORTUNITIES");
   console.log("================================\n");
