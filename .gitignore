@@ -1,0 +1,8 @@
+node_modules/
+browser-data/
+.env
+.cache/
+*.log
+playwright-report/
+test-results/
+data/*.pdf

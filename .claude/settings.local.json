@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(KEYWORD=\"Underwater Basket Weaving Architect\" LOCATION=\"Pune\" npm run dev)",
+      "Bash(KEYWORD=\"zzqqxwv9931plmk\" LOCATION=\"Pune\" npm run dev)",
+      "Bash(EXPERIENCE=8 MAX_JOBS=5 npm run dev)",
+      "Bash(npx playwright *)",
+      "Bash(LOGIN_TIMEOUT_MINUTES=0.05 npm run dev)",
+      "Bash(LOGIN_TIMEOUT_MINUTES=15 npm run dev)"
+    ]
+  }
+}
