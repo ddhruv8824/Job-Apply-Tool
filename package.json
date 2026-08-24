@@ -9,6 +9,7 @@
     "agent:test": "tsx src/agent/checkGraph.ts",
     "apply:one": "tsx src/application/runOneApplication.ts",
     "apply:test": "tsx src/application/checkApplication.ts",
+    "application-profile": "tsx src/application/showApplicationProfile.ts",
     "cache:clear": "tsx src/cache/clearCache.ts",
     "dev": "tsx src/index.ts",
     "discover": "tsx src/naukri/runDiscovery.ts",
@@ -19,6 +20,9 @@
     "profile:schema": "tsx src/resume/checkCandidateProfileSchema.ts",
     "profile:text": "tsx src/resume/checkResumeText.ts",
     "profile": "tsx src/resume/profile.ts",
+    "questionnaire:test": "tsx src/questionnaire/checkQuestionnaire.ts",
+    "questionnaire:dry-run": "tsx src/questionnaire/runCurrentQuestionnaire.ts",
+    "questionnaire:live-check": "tsx src/questionnaire/liveCheck.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

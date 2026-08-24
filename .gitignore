@@ -6,3 +6,4 @@ browser-data/
 playwright-report/
 test-results/
 data/*.pdf
+data/applicationProfile.json
