@@ -27,6 +27,17 @@ async function readAuthState(page: Page): Promise<boolean | null> {
   return null;
 }
 
+/** Non-interactive scheduled preflight. It never waits for credentials, OTP, or CAPTCHA input. */
+export async function preflightNaukriAuthentication(page: Page): Promise<boolean> {
+  await openNaukri(page);
+  try {
+    await page.locator(`${LOGGED_IN_SIGNALS}, ${LOGIN_BUTTON}`).first().waitFor({ state: "attached", timeout: 45_000 });
+  } catch {
+    return false;
+  }
+  return (await readAuthState(page)) === true;
+}
+
 /** Checks the rendered header without navigating or exposing session data. */
 export async function isNaukriAuthenticated(
   page: Page,

@@ -48,7 +48,7 @@ const RESPONSE_SHAPE = `{
 }`;
 
 function removeJsonFence(text: string): string {
-  const match = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
   return match?.[1]?.trim() ?? text.trim();
 }
 

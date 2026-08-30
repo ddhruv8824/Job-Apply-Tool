@@ -45,9 +45,10 @@ function adapter(options: { type?: Awaited<ReturnType<ApplyAdapter["detectType"]
 const external = adapter({ type: "EXTERNAL_COMPANY" });
 expect((await applyWithAdapter(external.value, job(), false)).status === "UNKNOWN" && external.clicks() === 0, "External reclassification clicked");
 const adapterDryRun = adapter();
-expect((await applyWithAdapter(adapterDryRun.value, job(), true)).status === "DRY_RUN" && adapterDryRun.clicks() === 0, "Browser dry run clicked Apply");
+let attemptRecords = 0;
+expect((await applyWithAdapter(adapterDryRun.value, job(), true, async () => { attemptRecords += 1; })).status === "DRY_RUN" && adapterDryRun.clicks() === 0 && attemptRecords === 0, "Browser dry run recorded or clicked Apply");
 const questionnaire = adapter({ signals: { questionnaire: true, visibleQuestions: 3 } });
-expect((await applyWithAdapter(questionnaire.value, job(), false)).status === "QUESTIONNAIRE" && questionnaire.clicks() === 1, "Questionnaire detection failed");
+expect((await applyWithAdapter(questionnaire.value, job(), false, async () => { attemptRecords += 1; })).status === "QUESTIONNAIRE" && questionnaire.clicks() === 1 && attemptRecords === 1, "Questionnaire detection or single attempt recording failed");
 const applied = adapter({ signals: { applied: true } });
 expect((await applyWithAdapter(applied.value, job(), false)).status === "APPLIED" && applied.clicks() === 1, "Successful apply detection failed");
 const already = adapter({ signals: { alreadyApplied: true } });
@@ -60,6 +61,7 @@ expect((await applyWithAdapter(auth.value, job(), false)).status === "AUTH_REQUI
 console.log("Eligibility tests: PASSED");
 console.log("Highest-ranked selection: PASSED");
 console.log("Dry-run gate: PASSED");
+console.log("Live attempt counted exactly once: PASSED");
 console.log("Human-rejection gate: PASSED");
 console.log("External reclassification: PASSED");
 console.log("Questionnaire detection/no interaction: PASSED");

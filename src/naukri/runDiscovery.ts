@@ -31,5 +31,6 @@ console.log(`Direct: ${result.directCount}`);
 console.log(`External: ${result.externalCount}`);
 console.log(`Walk-in: ${result.walkInCount}`);
 console.log(`Unknown: ${result.unknownCount}`);
+console.log("Database persistence: DISABLED for discovery-only command (use npm run agent for tracked discovery)");
 console.log("CandidateProfile/Groq called: NO");
 process.exit(0);

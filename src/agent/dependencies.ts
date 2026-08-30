@@ -9,4 +9,7 @@ export type JobAgentDependencies = {
   discoverDirectJobs: () => Promise<DirectJobDiscoveryResult>;
   extractJobDetails: (jobs: Job[]) => Promise<DetailedJob[]>;
   matchJobs: (profile: CandidateProfile, jobs: DetailedJob[]) => Promise<MatchResult[]>;
+  persistDiscovery: (result: DirectJobDiscoveryResult) => Promise<void>;
+  filterPreviouslyApplied: (jobs: Job[]) => Promise<{ processableJobs: Job[]; previouslyAppliedJobs: Job[] }>;
+  saveMatchResults: (matches: MatchResult[]) => Promise<void>;
 };

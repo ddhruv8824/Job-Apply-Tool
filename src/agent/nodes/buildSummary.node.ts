@@ -1,6 +1,6 @@
 import type { JobAgentState, JobAgentSummary } from "../state.js";
 
-export function summarize(state: Pick<JobAgentState, "jobs" | "directJobs" | "discovery" | "rankedMatches">): JobAgentSummary {
+export function summarize(state: Pick<JobAgentState, "jobs" | "directJobs" | "discovery" | "rankedMatches" | "historyStats">): JobAgentSummary {
   const scores = state.rankedMatches.map((match) => match.overallScore);
   const summary: JobAgentSummary = {
     totalJobs: state.jobs.length,
@@ -12,6 +12,7 @@ export function summarize(state: Pick<JobAgentState, "jobs" | "directJobs" | "di
     apply: state.rankedMatches.filter((match) => match.recommendation === "APPLY").length,
     review: state.rankedMatches.filter((match) => match.recommendation === "REVIEW").length,
     skip: state.rankedMatches.filter((match) => match.recommendation === "SKIP").length,
+    previouslyAppliedSkipped: state.historyStats?.previouslyAppliedSkipped ?? 0,
   };
   if (scores.length > 0) {
     summary.highestScore = Math.max(...scores);

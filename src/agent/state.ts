@@ -16,6 +16,7 @@ export type JobAgentSummary = {
   apply: number;
   review: number;
   skip: number;
+  previouslyAppliedSkipped: number;
   highestScore?: number;
   averageScore?: number;
 };
@@ -27,6 +28,9 @@ export const JobAgentStateAnnotation = Annotation.Root({
   jobs: replaceArray<Job>(),
   detailedJobs: replaceArray<DetailedJob>(),
   directJobs: replaceArray<Job>(),
+  processableDirectJobs: replaceArray<Job>(),
+  previouslyAppliedJobs: replaceArray<Job>(),
+  historyStats: Annotation<{ previouslyAppliedSkipped: number } | undefined>(),
   manualJobs: replaceArray<ManualJob>(),
   discovery: Annotation<Omit<DirectJobDiscoveryResult, "directJobs" | "manualJobs"> | undefined>(),
   matches: replaceArray<MatchResult>(),

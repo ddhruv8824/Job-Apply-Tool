@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ApplicationType {
+  NAUKRI_DIRECT
+  EXTERNAL_COMPANY
+  WALK_IN
+  UNKNOWN
+}
+
+enum ApplicationStatus {
+  DISCOVERED
+  EXTERNAL_SKIPPED
+  DIRECT_FOUND
+  MATCHED
+  REVIEW
+  SKIP
+  READY_TO_APPLY
+  NEEDS_INPUT
+  QUESTIONNAIRE
+  APPLIED
+  ALREADY_APPLIED
+  AUTH_REQUIRED
+  FAILED
+  UNKNOWN
+}
+
+enum AgentRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AgentRunType {
+  INTERACTIVE
+  DAILY_DISCOVERY
+  UNATTENDED_AUTO_APPLY
+}
+
+model Job {
+  id              String          @id @default(cuid())
+  naukriJobId     String?         @unique
+  jobUrl          String          @unique
+  title           String
+  company         String
+  location        String?
+  applicationType ApplicationType
+  firstSeenAt     DateTime        @default(now())
+  lastSeenAt      DateTime        @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  application     Application?
+
+  @@index([company])
+  @@index([applicationType])
+}
+
+model Application {
+  id                    String            @id @default(cuid())
+  jobId                 String            @unique
+  job                   Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status                ApplicationStatus
+  matchScore            Float?
+  recommendation        String?
+  attemptCount          Int               @default(0)
+  lastAttemptAt         DateTime?
+  appliedAt             DateTime?
+  questionnaireDetected Boolean           @default(false)
+  lastError             String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  attempts              ApplicationAttempt[]
+
+  @@index([status])
+}
+
+model ApplicationAttempt {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  attemptedAt   DateTime    @default(now())
+  mode          String
+
+  @@index([attemptedAt])
+  @@index([applicationId, attemptedAt])
+}
+
+model AgentRun {
+  id                       String         @id @default(cuid())
+  runType                  AgentRunType   @default(INTERACTIVE)
+  status                   AgentRunStatus
+  keyword                  String?
+  location                 String?
+  jobsInspected            Int            @default(0)
+  directJobs               Int            @default(0)
+  externalJobs             Int            @default(0)
+  previouslyAppliedSkipped Int            @default(0)
+  matchedJobs              Int            @default(0)
+  readyToApplyJobs         Int            @default(0)
+  appliedJobs              Int            @default(0)
+  attemptedJobs            Int            @default(0)
+  alreadyAppliedJobs       Int            @default(0)
+  questionnaireJobs        Int            @default(0)
+  needsInputJobs           Int            @default(0)
+  skippedJobs              Int            @default(0)
+  failedJobs               Int            @default(0)
+  startedAt                DateTime       @default(now())
+  completedAt              DateTime?
+  error                    String?
+
+  @@index([runType, status, startedAt])
+}

@@ -29,17 +29,29 @@ function dependencies(overrides: Partial<JobAgentDependencies> = {}, calls: stri
     loadProfile: async () => { calls.push("profile"); return profile; },
     extractJobDetails: async (jobs) => { calls.push(`details:${jobs.length}`); return jobs.map(detailed); },
     matchJobs: async (_profile, jobs) => { calls.push(`match:${jobs.length}`); return jobs.map((item, index) => ({ ...match(index, index ? 91 : 75), jobId: item.jobId, jobUrl: item.jobUrl })); },
+    persistDiscovery: async () => { calls.push("persist"); },
+    filterPreviouslyApplied: async (jobs) => { calls.push(`history:${jobs.length}`); return { processableJobs: jobs, previouslyAppliedJobs: [] }; },
+    saveMatchResults: async (matches) => { calls.push(`save:${matches.length}`); },
     ...overrides,
   };
 }
 
 const happyCalls: string[] = [];
 const happy = await createJobAgentGraph(dependencies({}, happyCalls)).invoke(initialJobAgentState());
-expect(happy.summary?.totalJobs === 2 && happy.selectedApplication?.match.overallScore === 91 && happyCalls.join(",") === "discover,profile,details:2,match:2", "Happy path failed");
+expect(happy.summary?.totalJobs === 2 && happy.selectedApplication?.match.overallScore === 91 && happyCalls.join(",") === "discover,persist,history:2,profile,details:2,match:2,save:2", "Happy path failed");
 
 const zeroCalls: string[] = [];
 const zero = await createJobAgentGraph(dependencies({ discoverDirectJobs: async () => { zeroCalls.push("discover"); return discovery([], 5); } }, zeroCalls)).invoke(initialJobAgentState());
 expect(zero.summary?.totalJobs === 5 && !zeroCalls.some((call) => call === "profile" || call.startsWith("match")), "Zero-direct route called profile or Groq matcher");
+
+for (const permanentStatus of ["APPLIED", "ALREADY_APPLIED"] as const) {
+  const blockedCalls: string[] = [];
+  const blocked = await createJobAgentGraph(dependencies({
+    filterPreviouslyApplied: async (jobs) => { blockedCalls.push(`blocked:${permanentStatus}`); return { processableJobs: [], previouslyAppliedJobs: jobs }; },
+  }, blockedCalls)).invoke(initialJobAgentState());
+  expect(blocked.summary?.previouslyAppliedSkipped === 2, `${permanentStatus} skip count failed`);
+  expect(!blockedCalls.some((call) => call === "profile" || call.startsWith("details") || call.startsWith("match")), `${permanentStatus} reached expensive work`);
+}
 
 let extractedCount = -1;
 await createJobAgentGraph(dependencies({
@@ -61,6 +73,7 @@ expect(ranking.rankedMatches.map((item) => item.overallScore).join(",") === "91,
 
 console.log("Happy-path test: PASSED");
 console.log("Zero-direct/no-Groq route: PASSED");
+console.log("APPLIED/ALREADY_APPLIED pre-profile hard skip: PASSED");
 console.log("Direct-only full extraction: PASSED");
 console.log("Partial-detail route: PASSED");
 console.log("Critical-profile failure: PASSED");

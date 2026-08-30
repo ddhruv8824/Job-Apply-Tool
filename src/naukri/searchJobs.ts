@@ -123,7 +123,7 @@ export async function startJobSearch(
     'input[aria-label="Enter keyword, designation, or companies"]:visible'
   );
   if ((await keywordInput.count()) === 0) {
-    await page.getByRole("button", { name: "Search jobs here" }).click();
+    await page.getByRole("button", { name: "Search jobs here" }).click({ force: true });
   }
   await keywordInput.waitFor({ state: "visible", timeout: 30_000 });
 

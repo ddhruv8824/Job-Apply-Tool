@@ -5,6 +5,7 @@ export function createDiscoverDirectJobsNode(dependencies: JobAgentDependencies)
   return async (_state: JobAgentState): Promise<Partial<JobAgentState>> => {
     console.log("[discoverDirectJobs] Starting");
     const result = await dependencies.discoverDirectJobs();
+    await dependencies.persistDiscovery(result);
     console.log(`[discoverDirectJobs] Inspected ${result.inspectedJobs} across ${result.pagesVisited} page(s)`);
     console.log(`[discoverDirectJobs] Direct=${result.directCount} Manual=${result.manualJobs.length}`);
     const { directJobs, manualJobs, ...discovery } = result;

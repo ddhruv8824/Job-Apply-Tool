@@ -8,6 +8,7 @@ import { matchJobs } from "../matching/matchJobs.js";
 import { extractResumeText } from "../resume/parseResume.js";
 import { getCandidateProfile } from "../resume/getCandidateProfile.js";
 import type { JobAgentDependencies } from "./dependencies.js";
+import { filterPreviouslyApplied, persistDiscovery, saveMatchResults } from "../db/trackingService.js";
 
 function positiveInteger(name: string, fallback: number): number {
   const value = Number(process.env[name] ?? fallback);
@@ -18,8 +19,8 @@ const resumePath = path.resolve("data", "DhruvCVU.pdf");
 
 export type ProductionJobAgentDependencies = JobAgentDependencies & { getAuthenticatedPage: () => Promise<Page> };
 
-export function createProductionDependencies(): ProductionJobAgentDependencies {
-  let page: Page | undefined;
+export function createProductionDependencies(existingPage?: Page): ProductionJobAgentDependencies {
+  let page: Page | undefined = existingPage;
   const discoveryConfig: DiscoveryConfig = {
     keyword: process.env.JOB_KEYWORD?.trim() || "Frontend Developer",
     location: process.env.JOB_LOCATION?.trim() || "Pune",
@@ -42,5 +43,8 @@ export function createProductionDependencies(): ProductionJobAgentDependencies {
     discoverDirectJobs: async () => discoverDirectJobs(await getAuthenticatedPage(), discoveryConfig),
     extractJobDetails: async (jobs) => getJobsDetails(await getAuthenticatedPage(), jobs),
     matchJobs,
+    persistDiscovery,
+    filterPreviouslyApplied,
+    saveMatchResults,
   };
 }

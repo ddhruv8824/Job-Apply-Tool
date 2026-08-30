@@ -9,6 +9,8 @@ import { isExplicitApproval, runApplicationGate } from "./approval.js";
 import { loadApplicationProfile } from "./loadApplicationProfile.js";
 import { runQuestionnaire, isQuestionnaireDryRun } from "../questionnaire/runQuestionnaire.js";
 import type { QuestionnaireQuestion, ResolvedAnswer } from "../questionnaire/types.js";
+import { hasAlreadyApplied, recordApplicationAttempt, saveApplicationFailure, saveApplyResult, saveQuestionnaireResult } from "../db/applicationRepository.js";
+import { sanitizeOperationalError } from "../db/sanitize.js";
 
 try { loadEnvFile(); } catch (error) {
   if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
@@ -50,12 +52,24 @@ if (!dryRun) {
 }
 
 const page = await dependencies.getAuthenticatedPage();
-const applicationResult = await runApplicationGate({
-  dryRun,
-  approval,
-  verifyDryRun: () => applyToNaukriJob(page, selected.job, true),
-  applyLive: () => applyToNaukriJob(page, selected.job, false),
-});
+let applicationResult: ApplyResult | null | undefined;
+try {
+  applicationResult = await runApplicationGate({
+    dryRun,
+    approval,
+    verifyDryRun: () => applyToNaukriJob(page, selected.job, true),
+    applyLive: async () => {
+      if (await hasAlreadyApplied(selected.job)) return { status: "ALREADY_APPLIED", message: "Persistent history blocks a duplicate application." };
+      return applyToNaukriJob(page, selected.job, false, () => recordApplicationAttempt(selected.job).then(() => undefined));
+    },
+  });
+  if (applicationResult) await saveApplyResult(selected.job, applicationResult);
+} catch (error) {
+  await saveApplicationFailure(selected.job, error).catch((trackingError) => {
+    console.error(`Could not persist application failure: ${sanitizeOperationalError(trackingError)}`);
+  });
+  throw error;
+}
 if (!applicationResult) process.exit(0);
 
 console.log("\n================================");
@@ -103,8 +117,14 @@ if (applicationResult.status === "QUESTIONNAIRE") {
       review: printReview,
       approve: async () => questionnaireTerminal.question("Proceed with filling and submitting this questionnaire step? (yes/no): "),
     },
+  }).catch(async (error) => {
+    await saveApplicationFailure(selected.job, error).catch(() => undefined);
+    throw error;
+  }).finally(() => questionnaireTerminal.close());
+  await saveQuestionnaireResult(selected.job, {
+    status: questionnaireResult.status,
+    message: "message" in questionnaireResult ? questionnaireResult.message : undefined,
   });
-  questionnaireTerminal.close();
   console.log("\n================================"); console.log("QUESTIONNAIRE RESULT"); console.log("================================\n");
   console.log(`Result: ${questionnaireResult.status}`);
   if ("message" in questionnaireResult && questionnaireResult.message) console.log(questionnaireResult.message);

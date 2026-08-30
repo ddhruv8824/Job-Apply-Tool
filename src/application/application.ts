@@ -2,14 +2,18 @@ import type { DetailedJob } from "../naukri/getJobDetails.js";
 import type { MatchResult } from "../matching/match.schema.js";
 
 export type ReadyToApplyJob = { job: DetailedJob; match: MatchResult };
+export const APPLICATION_MINIMUM_SCORE = 85;
 export type ApplyResult = {
   status: "APPLIED" | "QUESTIONNAIRE" | "ALREADY_APPLIED" | "AUTH_REQUIRED" | "UNKNOWN" | "DRY_RUN";
   message?: string;
   visibleQuestions?: number;
+  interactionOccurred?: boolean;
+  reason?: "AUTH_REQUIRED" | "IDENTITY_MISMATCH" | "LIVE_RECLASSIFIED" | "DIRECT_CONTROL_MISSING" | "HUMAN_REQUIRED" | "EXTERNAL_REDIRECT" | "UNKNOWN_POST_CLICK";
+  needsInput?: boolean;
 };
 
 export function isEligibleForApplication(job: DetailedJob, match: MatchResult): boolean {
-  return job.applicationType === "NAUKRI_DIRECT" && match.recommendation === "APPLY" && match.overallScore >= 85;
+  return job.applicationType === "NAUKRI_DIRECT" && match.recommendation === "APPLY" && match.overallScore >= APPLICATION_MINIMUM_SCORE;
 }
 
 export function selectReadyToApplyJobs(jobs: DetailedJob[], matches: MatchResult[]): ReadyToApplyJob[] {

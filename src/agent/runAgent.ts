@@ -1,12 +1,18 @@
 import { loadEnvFile } from "node:process";
 import { createJobAgentGraph, GRAPH_STRUCTURE, initialJobAgentState } from "./graph.js";
 import { createProductionDependencies } from "./productionDependencies.js";
+import { createAgentRun, completeAgentRun, failAgentRun } from "../db/runRepository.js";
+import { sanitizeOperationalError } from "../db/sanitize.js";
 
 try { loadEnvFile(); } catch (error) {
   if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
 }
 
 async function main(): Promise<void> {
+  const keyword = process.env.JOB_KEYWORD?.trim() || "Frontend Developer";
+  const location = process.env.JOB_LOCATION?.trim() || "Pune";
+  const run = await createAgentRun(keyword, location);
+  try {
   console.log("Starting Job Agent Graph...\n");
   console.log(`Graph: ${GRAPH_STRUCTURE}\n`);
   const graph = createJobAgentGraph(createProductionDependencies());
@@ -44,9 +50,18 @@ async function main(): Promise<void> {
   console.log(`APPLY: ${summary?.apply ?? 0}`);
   console.log(`REVIEW: ${summary?.review ?? 0}`);
   console.log(`SKIP: ${summary?.skip ?? 0}`);
+  console.log(`Previously applied skipped: ${summary?.previouslyAppliedSkipped ?? 0}`);
   console.log(`Highest: ${summary?.highestScore ?? 0}%`);
   console.log(`Average: ${summary?.averageScore ?? 0}%`);
   if (result.errors.length) console.log(`Recoverable errors: ${result.errors.join("; ")}`);
+  if (!summary) throw new Error("Agent graph completed without a summary.");
+  await completeAgentRun(run.id, summary);
+  } catch (error) {
+    await failAgentRun(run.id, error).catch((trackingError) => {
+      console.error(`Could not mark AgentRun failed: ${sanitizeOperationalError(trackingError)}`);
+    });
+    throw error;
+  }
 }
 
 main().then(() => process.exit(0), (error) => {

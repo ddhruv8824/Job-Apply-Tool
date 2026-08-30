@@ -15,8 +15,8 @@ const LlmHealthSchema = z.object({
 });
 
 function removeSurroundingJsonFence(text: string): string {
-  const match = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  return match?.[1]?.trim() ?? text;
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  return match?.[1]?.trim() ?? text.trim();
 }
 
 async function main(): Promise<void> {
