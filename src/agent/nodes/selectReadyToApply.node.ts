@@ -6,6 +6,6 @@ export async function selectReadyToApplyNode(state: JobAgentState): Promise<Part
   const selectedApplication = readyToApplyJobs[0];
   console.log(`[selectReadyToApply] Eligible jobs: ${readyToApplyJobs.length}`);
   if (selectedApplication) console.log(`[selectReadyToApply] Selected ${selectedApplication.job.title} - ${selectedApplication.match.overallScore}%`);
-  else console.log("[selectReadyToApply] No Naukri Direct APPLY candidates found.");
+  else console.log("[selectReadyToApply] No Hirist Direct APPLY candidates found.");
   return { readyToApplyJobs, selectedApplication };
 }

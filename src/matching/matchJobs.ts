@@ -1,4 +1,4 @@
-import type { DetailedJob } from "../naukri/getJobDetails.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
 import type { CandidateProfile } from "../resume/candidateProfile.schema.js";
 import { analyzeJobMatch } from "./analyzeJobMatch.js";
 import { calculateMatchScore } from "./calculateMatchScore.js";
@@ -9,7 +9,7 @@ export async function matchJobs(
   jobs: DetailedJob[]
 ): Promise<MatchResult[]> {
   const matches: MatchResult[] = [];
-  const eligibleJobs = jobs.filter((job) => job.applicationType === "NAUKRI_DIRECT");
+  const eligibleJobs = jobs.filter((job) => job.applicationType === "HIRIST_DIRECT");
   if (eligibleJobs.length !== jobs.length) {
     console.log(`AI safety filter: excluded ${jobs.length - eligibleJobs.length} non-direct job(s).`);
   }

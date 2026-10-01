@@ -8,7 +8,7 @@ datasource db {
 }
 
 enum ApplicationType {
-  NAUKRI_DIRECT
+  HIRIST_DIRECT
   EXTERNAL_COMPANY
   WALK_IN
   UNKNOWN
@@ -46,7 +46,7 @@ enum AgentRunType {
 
 model Job {
   id              String          @id @default(cuid())
-  naukriJobId     String?         @unique
+  hiristJobId     String?         @unique
   jobUrl          String          @unique
   title           String
   company         String

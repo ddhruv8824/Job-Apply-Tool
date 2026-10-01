@@ -8,8 +8,8 @@ import { partitionDailyRuns } from "../db/runOverlap.js";
 function expect(condition: boolean, message: string): void { if (!condition) throw new Error(message); }
 function ready(id: number, score: number): ReadyToApplyJob {
   return {
-    job: { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, location: "Pune", jobUrl: `https://www.naukri.com/job-${id}`, description: "Description", applicationType: "NAUKRI_DIRECT" },
-    match: { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, jobUrl: `https://www.naukri.com/job-${id}`, overallScore: score, skillMatchScore: score, experienceMatchScore: score, roleMatchScore: score, responsibilityMatchScore: score, skillMatches: [], unknownSkills: [], hardMissingRequirements: [], matchedSkills: [], missingRequiredSkills: [], missingPreferredSkills: [], matchedEvidence: [], strengths: [], concerns: [], recommendation: "APPLY", reason: "test" },
+    job: { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, location: "Pune", jobUrl: `https://www.hirist.tech/j/job-${id}`, description: "Description", applicationType: "HIRIST_DIRECT" },
+    match: { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, jobUrl: `https://www.hirist.tech/j/job-${id}`, overallScore: score, skillMatchScore: score, experienceMatchScore: score, roleMatchScore: score, responsibilityMatchScore: score, skillMatches: [], unknownSkills: [], hardMissingRequirements: [], matchedSkills: [], missingRequiredSkills: [], missingPreferredSkills: [], matchedEvidence: [], strengths: [], concerns: [], recommendation: "APPLY", reason: "test" },
   };
 }
 const emptySummary: JobAgentSummary = { totalJobs: 0, directJobs: 0, externalJobs: 0, walkInJobs: 0, unknownJobs: 0, analyzedJobs: 0, apply: 0, review: 0, skip: 0, previouslyAppliedSkipped: 0 };

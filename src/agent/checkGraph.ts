@@ -1,6 +1,6 @@
-import type { DirectJobDiscoveryResult } from "../naukri/discoverDirectJobs.js";
-import type { DetailedJob } from "../naukri/getJobDetails.js";
-import type { Job } from "../naukri/searchJobs.js";
+import type { DirectJobDiscoveryResult } from "../hirist/discoverDirectJobs.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
+import type { Job } from "../hirist/searchJobs.js";
 import type { CandidateProfile } from "../resume/candidateProfile.schema.js";
 import type { MatchResult } from "../matching/match.schema.js";
 import type { JobAgentDependencies } from "./dependencies.js";
@@ -8,10 +8,10 @@ import { createJobAgentGraph, initialJobAgentState } from "./graph.js";
 
 function expect(condition: boolean, message: string): void { if (!condition) throw new Error(message); }
 const profile: CandidateProfile = { targetRoles: [], skills: ["React"], workExperience: [], projects: [], education: [], certifications: [] };
-function job(id: number): Job { return { title: `Job ${id}`, company: "Company", location: "Pune", jobUrl: `https://www.naukri.com/job-${id}` }; }
-function detailed(value: Job): DetailedJob { return { ...value, description: "Description", applicationType: "NAUKRI_DIRECT" }; }
+function job(id: number): Job { return { title: `Job ${id}`, company: "Company", location: "Pune", jobUrl: `https://www.hirist.tech/j/job-${id}` }; }
+function detailed(value: Job): DetailedJob { return { ...value, description: "Description", applicationType: "HIRIST_DIRECT" }; }
 function match(id: number, score: number): MatchResult {
-  return { title: `Job ${id}`, company: "Company", jobUrl: `https://www.naukri.com/${id}`, overallScore: score,
+  return { title: `Job ${id}`, company: "Company", jobUrl: `https://www.hirist.tech/j/${id}`, overallScore: score,
     skillMatchScore: score, experienceMatchScore: score, roleMatchScore: score, responsibilityMatchScore: score,
     skillMatches: [], unknownSkills: [], hardMissingRequirements: [], matchedSkills: [], missingRequiredSkills: [],
     missingPreferredSkills: [], matchedEvidence: [], strengths: [], concerns: [],

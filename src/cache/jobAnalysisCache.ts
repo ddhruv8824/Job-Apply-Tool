@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { DetailedJob } from "../naukri/getJobDetails.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
 import { JobMatchAnalysisSchema, type JobMatchAnalysis } from "../matching/match.schema.js";
 import { createHash, isCacheReadEnabled } from "./hash.js";
 
@@ -8,7 +8,7 @@ type JobAnalysisCache = { jobId: string; jobHash: string; createdAt: string; ana
 
 export function jobContentHash(job: DetailedJob): string {
   return createHash(JSON.stringify({ title: job.title, experience: job.experience, description: job.description,
-    skills: job.skills, role: job.role, industry: job.industry, employmentType: job.employmentType }));
+    skills: job.skills, mandatorySkills: job.mandatorySkills, role: job.role, industry: job.industry, employmentType: job.employmentType }));
 }
 
 function cacheIdentity(job: DetailedJob): string {

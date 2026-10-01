@@ -1,9 +1,11 @@
 import path from "node:path";
 import { loadEnvFile } from "node:process";
-import { connectToChrome } from "../naukri/browser.js";
-import { ensureNaukriAuthenticated } from "../naukri/auth.js";
-import { getJobsDetails } from "../naukri/getJobDetails.js";
-import { discoverDirectJobs, type DiscoveryConfig } from "../naukri/discoverDirectJobs.js";
+import { createHiristClient, pageTransport } from "../hirist/api.js";
+import { connectToChrome } from "../hirist/browser.js";
+import { getDiscoveryConfig } from "../hirist/config.js";
+import { ensureHiristAuthenticated } from "../hirist/auth.js";
+import { getJobsDetails } from "../hirist/getJobDetails.js";
+import { discoverDirectJobs } from "../hirist/discoverDirectJobs.js";
 import { getCandidateProfile } from "../resume/getCandidateProfile.js";
 import { extractResumeText } from "../resume/parseResume.js";
 import { matchJobs } from "./matchJobs.js";
@@ -17,19 +19,8 @@ try {
   }
 }
 
-function positiveInteger(name: string, fallback: number): number {
-  const value = Number(process.env[name] ?? fallback);
-  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer.`);
-  return value;
-}
 const resumePath = path.resolve("data", "DhruvCVU.pdf");
-const discoveryConfig: DiscoveryConfig = {
-  keyword: process.env.JOB_KEYWORD?.trim() || "Frontend Developer",
-  location: process.env.JOB_LOCATION?.trim() || "Pune",
-  targetDirectJobs: positiveInteger("TARGET_DIRECT_JOBS", 10),
-  maxJobsToInspect: positiveInteger("MAX_JOBS_TO_INSPECT", 60),
-  maxPages: positiveInteger("MAX_SEARCH_PAGES", 5),
-};
+const discoveryConfig = getDiscoveryConfig();
 
 function printRanked(matches: MatchResult[]): void {
   console.log("\n================================");
@@ -63,9 +54,10 @@ async function main(): Promise<void> {
   console.log("Connecting to Chrome on port 9222...");
   const { page } = await connectToChrome();
   console.log("Connected.\n");
-  await ensureNaukriAuthenticated(page);
+  await ensureHiristAuthenticated(page);
+  const client = createHiristClient(pageTransport(page));
 
-  const discovery = await discoverDirectJobs(page, discoveryConfig);
+  const discovery = await discoverDirectJobs(client, discoveryConfig);
   console.log(`Direct jobs discovered: ${discovery.directCount}`);
   console.log(`Manual opportunities: ${discovery.manualJobs.length}\n`);
   if (discovery.directJobs.length === 0) {
@@ -76,7 +68,7 @@ async function main(): Promise<void> {
   console.log("Building candidate profile...");
   const profile = await getCandidateProfile(await extractResumeText(resumePath));
   console.log("Profile: READY\n");
-  const detailedJobs = await getJobsDetails(page, discovery.directJobs);
+  const detailedJobs = await getJobsDetails(client, discovery.directJobs);
   console.log(`Detailed jobs: ${detailedJobs.length}\n`);
   console.log("Analyzing matches...\n");
   const matches = await matchJobs(profile, detailedJobs);

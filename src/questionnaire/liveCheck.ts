@@ -1,7 +1,8 @@
 import path from "node:path";
 import { loadApplicationProfile } from "../application/loadApplicationProfile.js";
-import { isNaukriAuthenticated } from "../naukri/auth.js";
-import { connectToChrome } from "../naukri/browser.js";
+import { isHiristUrl } from "../hirist/api.js";
+import { isHiristAuthenticated } from "../hirist/auth.js";
+import { connectToChrome } from "../hirist/browser.js";
 import { extractResumeText } from "../resume/parseResume.js";
 import { getCandidateProfile } from "../resume/getCandidateProfile.js";
 import { extractQuestionnaire } from "./extractQuestionnaire.js";
@@ -13,12 +14,8 @@ process.env.QUESTIONNAIRE_DRY_RUN = "true";
 
 function heading(): void {
   console.log("================================");
-  console.log("NAUKRI QUESTIONNAIRE LIVE CHECK");
+  console.log("HIRIST QUESTIONNAIRE LIVE CHECK");
   console.log("================================\n");
-}
-
-function isNaukriDomain(url: string): boolean {
-  try { const host = new URL(url).hostname.toLowerCase(); return host === "naukri.com" || host.endsWith(".naukri.com"); } catch { return false; }
 }
 
 heading();
@@ -32,12 +29,12 @@ try {
   process.exit(0);
 }
 
-if (!isNaukriDomain(page.url())) {
+if (!isHiristUrl(page.url())) {
   console.log("EXTERNAL_REDIRECT");
   console.log("No DOM acceptance performed.");
   process.exit(0);
 }
-if (!(await isNaukriAuthenticated(page))) {
+if (!(await isHiristAuthenticated(page))) {
   console.log("AUTH_REQUIRED");
   console.log("No DOM acceptance performed.");
   process.exit(0);

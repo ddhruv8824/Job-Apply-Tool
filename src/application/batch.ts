@@ -1,6 +1,6 @@
 import type { ApplyResult, ReadyToApplyJob } from "./application.js";
 import { selectReadyToApplyJobs } from "./application.js";
-import type { DetailedJob } from "../naukri/getJobDetails.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
 import type { MatchResult } from "../matching/match.schema.js";
 
 export const DEFAULT_BATCH_MAX_APPLICATIONS = 3;

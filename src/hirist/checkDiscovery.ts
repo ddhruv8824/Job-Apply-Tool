@@ -2,7 +2,7 @@ import { discoverDirectJobsCore, type ApplicationInspection, type DiscoveryConfi
 import type { Job } from "./searchJobs.js";
 
 function expect(condition: boolean, message: string): void { if (!condition) throw new Error(message); }
-function job(id: number): Job { return { title: `Job ${id}`, company: "Company", location: "Pune", jobUrl: `https://www.naukri.com/job-${id}` }; }
+function job(id: number): Job { return { jobId: String(id), title: `Job ${id}`, company: "Company", location: "Pune", jobUrl: `https://www.hirist.tech/j/job-${id}` }; }
 const base: DiscoveryConfig = { keyword: "Frontend Developer", location: "Pune", targetDirectJobs: 2, maxJobsToInspect: 20, maxPages: 5 };
 function inspector(types: Record<number, ApplicationInspection["applicationType"]>, calls: number[]) {
   return async (value: Job): Promise<ApplicationInspection> => {
@@ -15,7 +15,7 @@ const earlyCalls: number[] = [];
 const early = await discoverDirectJobsCore(base, {
   loadFirstPage: async () => ({ jobs: [job(1), job(2), job(3), job(4), job(5)], nextPageToken: "p2" }),
   loadPage: async () => { throw new Error("Unnecessary page visited"); },
-  inspect: inspector({ 1: "EXTERNAL_COMPANY", 2: "NAUKRI_DIRECT", 3: "EXTERNAL_COMPANY", 4: "NAUKRI_DIRECT" }, earlyCalls),
+  inspect: inspector({ 1: "EXTERNAL_COMPANY", 2: "HIRIST_DIRECT", 3: "EXTERNAL_COMPANY", 4: "HIRIST_DIRECT" }, earlyCalls),
 });
 expect(early.inspectedJobs === 4 && early.directCount === 2 && earlyCalls.length === 4, "Early target stop failed");
 
@@ -34,7 +34,7 @@ const paginatedCalls: number[] = [];
 const paginated = await discoverDirectJobsCore(base, {
   loadFirstPage: async () => ({ jobs: [job(1), job(2)], nextPageToken: "p2" }),
   loadPage: async (token) => { pageTwoVisits += 1; return pages[token] ?? null; },
-  inspect: inspector({ 3: "NAUKRI_DIRECT", 4: "NAUKRI_DIRECT" }, paginatedCalls),
+  inspect: inspector({ 3: "HIRIST_DIRECT", 4: "HIRIST_DIRECT" }, paginatedCalls),
 });
 expect(pageTwoVisits === 1 && paginated.pagesVisited === 2 && paginated.directCount === 2, "Pagination failed");
 expect(paginatedCalls.filter((id) => id === 2).length === 1, "Deduplication failed");
@@ -43,7 +43,7 @@ let forbiddenPageVisit = false;
 await discoverDirectJobsCore({ ...base, targetDirectJobs: 1 }, {
   loadFirstPage: async () => ({ jobs: [job(8)], nextPageToken: "p2" }),
   loadPage: async () => { forbiddenPageVisit = true; return null; },
-  inspect: inspector({ 8: "NAUKRI_DIRECT" }, []),
+  inspect: inspector({ 8: "HIRIST_DIRECT" }, []),
 });
 expect(!forbiddenPageVisit, "Unnecessary pagination occurred");
 

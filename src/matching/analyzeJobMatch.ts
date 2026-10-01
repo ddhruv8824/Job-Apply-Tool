@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { callLlm } from "../ai/llm.js";
 import { loadJobAnalysisCache, saveJobAnalysisCache } from "../cache/jobAnalysisCache.js";
-import type { DetailedJob } from "../naukri/getJobDetails.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
 import type { CandidateProfile } from "../resume/candidateProfile.schema.js";
 import {
   JobMatchAnalysisSchema,
@@ -14,7 +14,7 @@ STRICT RULES:
 1. CandidateProfile is the only source of truth about the candidate.
 2. Never invent candidate skills, experience, projects, companies, technologies, certifications, or achievements.
 3. Extract each actual JD requirement and classify its importance and category. Do not decide skill matches; TypeScript does that.
-4. REQUIRED requires explicit JD language such as must have, mandatory, required, minimum, must possess, or essential. Include the exact supporting phrase in mandatoryEvidence. A Naukri Key Skills list alone is UNKNOWN, never automatically REQUIRED.
+4. REQUIRED requires explicit JD language such as must have, mandatory, required, minimum, must possess, or essential. Include the exact supporting phrase in mandatoryEvidence. Hirist skill tags alone are UNKNOWN, never automatically REQUIRED; a tag listed under mandatorySkills was marked mandatory by the recruiter and may support REQUIRED only when the JD text agrees.
 5. PREFERRED requires language such as preferred, nice to have, desirable, or good to have. Otherwise use UNKNOWN.
 6. Alternatives such as "React or Angular" are not independently mandatory unless the text explicitly requires each one.
 7. Classify generic/soft requirements separately so they cannot dominate technical fit.
@@ -60,6 +60,7 @@ function relevantJob(job: DetailedJob): Record<string, unknown> {
     experience: job.experience,
     description: job.description,
     skills: job.skills,
+    mandatorySkills: job.mandatorySkills,
     role: job.role,
     industry: job.industry,
     employmentType: job.employmentType,

@@ -1,8 +1,8 @@
-import type { DetailedJob } from "../naukri/getJobDetails.js";
-import type { Job } from "../naukri/searchJobs.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
+import type { Job } from "../hirist/searchJobs.js";
 import type { CandidateProfile } from "../resume/candidateProfile.schema.js";
 import type { MatchResult } from "../matching/match.schema.js";
-import type { DirectJobDiscoveryResult } from "../naukri/discoverDirectJobs.js";
+import type { DirectJobDiscoveryResult } from "../hirist/discoverDirectJobs.js";
 
 export type JobAgentDependencies = {
   loadProfile: () => Promise<CandidateProfile>;

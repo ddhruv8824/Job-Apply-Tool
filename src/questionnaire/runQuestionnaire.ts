@@ -2,7 +2,8 @@ import type { Page } from "playwright";
 import type { ApplicationProfile } from "../application/applicationProfile.schema.js";
 import type { CandidateProfile } from "../resume/candidateProfile.schema.js";
 import { isExplicitApproval } from "../application/approval.js";
-import { isNaukriAuthenticated } from "../naukri/auth.js";
+import { isHiristUrl } from "../hirist/api.js";
+import { isHiristAuthenticated } from "../hirist/auth.js";
 import { extractQuestionnaire } from "./extractQuestionnaire.js";
 import { fillQuestionnaire } from "./fillQuestionnaire.js";
 import { resolveQuestionnaire, withUserInput } from "./resolveQuestionnaire.js";
@@ -32,17 +33,13 @@ export function isQuestionnaireDryRun(environment = process.env): boolean {
   return !isQuestionnaireMutationAllowed(environment);
 }
 
-function isNaukriUrl(url: string): boolean {
-  try { const host = new URL(url).hostname.toLowerCase(); return host === "naukri.com" || host.endsWith(".naukri.com"); } catch { return false; }
-}
-
 async function challengeVisible(page: Page): Promise<boolean> {
   const signal = page.getByText(/captcha|one[ -]?time password|\botp\b|phone verification|verify your (?:identity|phone)/i).first();
   return (await signal.count()) > 0 && await signal.isVisible().catch(() => false);
 }
 
 async function applicationApplied(page: Page): Promise<boolean> {
-  const signal = page.getByText(/successfully applied|application sent|application submitted|^applied$/i).first();
+  const signal = page.getByText(/job applied successfully|successfully applied|application sent|application submitted|^applied$/i).first();
   return (await signal.count()) > 0 && await signal.isVisible().catch(() => false);
 }
 
@@ -57,7 +54,7 @@ export async function runQuestionnaire(options: { page: Page; candidateProfile: 
   const dryRun = options.dryRun ?? isQuestionnaireDryRun();
   const maxSteps = options.maxSteps ?? MAX_QUESTIONNAIRE_STEPS;
   const runtime: QuestionnaireRuntime = options.runtime ?? {
-    url: () => page.url(), authenticated: () => isNaukriAuthenticated(page), challengeVisible: () => challengeVisible(page),
+    url: () => page.url(), authenticated: () => isHiristAuthenticated(page), challengeVisible: () => challengeVisible(page),
     applied: () => applicationApplied(page), extract: () => extractQuestionnaire(page),
     fill: (questions, answers) => fillQuestionnaire(page, questions, answers), validate: (questions, answers) => validateQuestionnaire(page, questions, answers),
     submitOnce: async () => { const submit = await findSubmissionControl(page); if (!submit) return false; await submit.click(); return true; },
@@ -65,7 +62,7 @@ export async function runQuestionnaire(options: { page: Page; candidateProfile: 
   };
   let totalQuestions = 0; let totalResolved = 0; let totalNeedsInput = 0; let totalUnsupported = 0;
   for (let step = 1; step <= maxSteps; step += 1) {
-    if (!isNaukriUrl(runtime.url())) return { status: "UNKNOWN", message: "EXTERNAL_REDIRECT: questionnaire left Naukri." };
+    if (!isHiristUrl(runtime.url())) return { status: "UNKNOWN", message: "EXTERNAL_REDIRECT: questionnaire left Hirist." };
     if (await runtime.challengeVisible() || !(await runtime.authenticated())) return { status: "AUTH_REQUIRED", message: "Authentication, OTP, CAPTCHA, or human verification is required." };
     if (await runtime.applied()) return { status: "APPLIED" };
     const questions = await runtime.extract();
@@ -92,7 +89,7 @@ export async function runQuestionnaire(options: { page: Page; candidateProfile: 
     if (!validation.valid) return { status: "VALIDATION_FAILED", message: validation.message };
     if (!(await runtime.submitOnce())) return { status: "UNKNOWN", message: "A unique verified questionnaire submission control was not found." };
     await runtime.settle();
-    if (!isNaukriUrl(runtime.url())) return { status: "UNKNOWN", message: "EXTERNAL_REDIRECT: questionnaire left Naukri." };
+    if (!isHiristUrl(runtime.url())) return { status: "UNKNOWN", message: "EXTERNAL_REDIRECT: questionnaire left Hirist." };
     if (await runtime.applied()) return { status: "APPLIED" };
     if (await runtime.challengeVisible() || !(await runtime.authenticated())) return { status: "AUTH_REQUIRED" };
   }

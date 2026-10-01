@@ -1,4 +1,4 @@
-import type { DetailedJob } from "../naukri/getJobDetails.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
 import type { MatchResult } from "../matching/match.schema.js";
 
 export type ReadyToApplyJob = { job: DetailedJob; match: MatchResult };
@@ -8,12 +8,12 @@ export type ApplyResult = {
   message?: string;
   visibleQuestions?: number;
   interactionOccurred?: boolean;
-  reason?: "AUTH_REQUIRED" | "IDENTITY_MISMATCH" | "LIVE_RECLASSIFIED" | "DIRECT_CONTROL_MISSING" | "HUMAN_REQUIRED" | "EXTERNAL_REDIRECT" | "UNKNOWN_POST_CLICK";
+  reason?: "AUTH_REQUIRED" | "IDENTITY_MISMATCH" | "LIVE_RECLASSIFIED" | "DIRECT_CONTROL_MISSING" | "HUMAN_REQUIRED" | "EXTERNAL_REDIRECT" | "UNKNOWN_POST_CLICK" | "PROFILE_INCOMPLETE" | "REVIEW_CONFIRM_MISSING";
   needsInput?: boolean;
 };
 
 export function isEligibleForApplication(job: DetailedJob, match: MatchResult): boolean {
-  return job.applicationType === "NAUKRI_DIRECT" && match.recommendation === "APPLY" && match.overallScore >= APPLICATION_MINIMUM_SCORE;
+  return job.applicationType === "HIRIST_DIRECT" && (match.recommendation === "APPLY" || match.recommendation === "REVIEW") && match.overallScore >= 70;
 }
 
 export function selectReadyToApplyJobs(jobs: DetailedJob[], matches: MatchResult[]): ReadyToApplyJob[] {

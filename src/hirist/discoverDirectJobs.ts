@@ -1,17 +1,14 @@
-import type { Page } from "playwright";
-import { isNaukriAuthenticated } from "./auth.js";
-import { detectApplicationType, type ApplicationType } from "./applicationType.js";
-import {
-  extractJobsFromCurrentPage,
-  getNextSearchPageUrl,
-  openSearchResultsPage,
-  startJobSearch,
-  type Job,
-} from "./searchJobs.js";
+import type { HiristClient } from "./api.js";
+import { classifyHiristJob, type ApplicationType } from "./applicationType.js";
+import { resolveLocationIds } from "./locations.js";
+import { searchJobsPage, type Job } from "./searchJobs.js";
 
 export type DiscoveryConfig = {
   keyword: string;
+  /** Comma-separated Hirist locations, e.g. "Pune" or "Pune, Remote". Empty means anywhere. */
   location: string;
+  minExperience?: number;
+  maxExperience?: number;
   targetDirectJobs: number;
   maxJobsToInspect: number;
   maxPages: number;
@@ -25,7 +22,7 @@ export type ApplicationInspection = {
 };
 
 export type ManualJob = Job & {
-  applicationType: Exclude<ApplicationType, "NAUKRI_DIRECT">;
+  applicationType: Exclude<ApplicationType, "HIRIST_DIRECT">;
   applicationLabel?: string;
   externalApplicationUrl?: string;
 };
@@ -56,7 +53,7 @@ function validateConfig(config: DiscoveryConfig): void {
 }
 
 function identity(job: Job): string {
-  return job.jobUrl.match(/-(\d+)\/?(?:\?.*)?$/)?.[1] ?? job.jobUrl;
+  return job.jobId ?? job.jobUrl.match(/-(\d+)\/?(?:\?.*)?$/)?.[1] ?? job.jobUrl;
 }
 
 export async function discoverDirectJobsCore(
@@ -79,7 +76,7 @@ export async function discoverDirectJobsCore(
       seen.add(key);
       const inspection = await dependencies.inspect(job);
       result.inspectedJobs += 1;
-      if (inspection.applicationType === "NAUKRI_DIRECT") {
+      if (inspection.applicationType === "HIRIST_DIRECT") {
         result.directJobs.push(job);
         result.directCount += 1;
       } else {
@@ -99,30 +96,27 @@ export async function discoverDirectJobsCore(
   return result;
 }
 
-export async function inspectApplicationType(page: Page, job: Job): Promise<ApplicationInspection> {
-  await page.goto(job.jobUrl, { waitUntil: "domcontentloaded", timeout: 60_000 });
-  const currentUrl = new URL(page.url());
-  if (currentUrl.hostname !== "www.naukri.com" || /login|register/i.test(currentUrl.pathname)) {
-    return { job, applicationType: "UNKNOWN" };
-  }
-  if (!(await isNaukriAuthenticated(page, 30_000))) return { job, applicationType: "UNKNOWN" };
-  await page.getByText("Job description", { exact: true }).first().waitFor({ state: "visible", timeout: 30_000 }).catch(() => undefined);
-  const applicationContainer = page.locator('[class^="styles_jhc__apply-button-container"]:visible').first();
-  await applicationContainer.waitFor({ state: "visible", timeout: 5_000 }).catch(() => undefined);
-  return { job, ...(await detectApplicationType(page)) };
+/** Read-only: classifies a job from Hirist's detail API without opening the page. */
+export async function inspectApplicationType(client: HiristClient, job: Job): Promise<ApplicationInspection> {
+  if (!job.jobId) return { job, applicationType: "UNKNOWN" };
+  return { job, ...classifyHiristJob(await client.jobDetail(job.jobId)) };
 }
 
-async function snapshotResultsPage(page: Page): Promise<DiscoveryPage> {
-  return { jobs: await extractJobsFromCurrentPage(page), nextPageToken: await getNextSearchPageUrl(page) };
-}
-
-export async function discoverDirectJobs(page: Page, config: DiscoveryConfig): Promise<DirectJobDiscoveryResult> {
-  console.log("Starting direct-job discovery...");
+export async function discoverDirectJobs(client: HiristClient, config: DiscoveryConfig): Promise<DirectJobDiscoveryResult> {
+  const query = { keyword: config.keyword, locationIds: resolveLocationIds(config.location),
+    minExperience: config.minExperience, maxExperience: config.maxExperience };
+  console.log("Starting Hirist direct-job discovery...");
+  console.log(`Keyword: ${config.keyword}`);
+  console.log(`Location: ${config.location || "Anywhere"}`);
   console.log(`Target direct jobs: ${config.targetDirectJobs}`);
   console.log(`Maximum jobs to inspect: ${config.maxJobsToInspect}`);
+  const loadPage = async (token: string) => {
+    const page = await searchJobsPage(client, query, Number(token));
+    return page.jobs.length ? page : null;
+  };
   return discoverDirectJobsCore(config, {
-    loadFirstPage: async () => (await startJobSearch(page, config.keyword, config.location)) ? snapshotResultsPage(page) : null,
-    loadPage: async (url) => (await openSearchResultsPage(page, url)) ? snapshotResultsPage(page) : null,
-    inspect: (job) => inspectApplicationType(page, job),
+    loadFirstPage: () => loadPage("0"),
+    loadPage,
+    inspect: (job) => inspectApplicationType(client, job),
   });
 }

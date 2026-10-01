@@ -1,11 +1,12 @@
-import type { Locator, Page } from "playwright";
-import { isNaukriAuthenticated } from "./auth.js";
-import type { Job } from "./searchJobs.js";
-import { detectApplicationType, type ApplicationType } from "./applicationType.js";
+import type { HiristClient, HiristJobDetailRaw } from "./api.js";
+import { classifyHiristJob, type ApplicationType } from "./applicationType.js";
+import { formatExperience, formatLocation, hiristJobUrl, type Job } from "./searchJobs.js";
 
 export type DetailedJob = Job & {
   description: string;
   skills?: string[];
+  /** Tags the recruiter marked mandatory on Hirist. */
+  mandatorySkills?: string[];
   role?: string;
   industry?: string;
   department?: string;
@@ -18,148 +19,70 @@ export type DetailedJob = Job & {
   applicationType: ApplicationType;
   applicationLabel?: string;
   externalApplicationUrl?: string;
+  screeningRequired?: boolean;
 };
 
 const MIN_DESCRIPTION_LENGTH = 100;
 
-/** Cleans DOM formatting while retaining meaningful line and paragraph breaks. */
-function normalizeDescription(text: string): string {
-  return text
+const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", rsquo: "'", lsquo: "'", rdquo: '"', ldquo: '"', ndash: "-", mdash: "-", bull: "-" };
+
+/** Converts Hirist's JD HTML to plain text, keeping line and paragraph breaks. */
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\s*li[^>]*>/gi, "\n- ")
+    .replace(/<\/\s*(p|div|li|ul|ol|h[1-6]|tr)\s*>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(parseInt(code, 16)))
+    .replace(/&([a-z]+);/gi, (entity, name: string) => ENTITIES[name.toLowerCase()] ?? entity)
     .replace(/\r\n?/g, "\n")
     .split("\n")
-    .map((line) => line.replace(/[\t\u00a0 ]+/g, " ").trim())
+    .map((line) => line.replace(/[\t  ]+/g, " ").trim())
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
-async function optionalText(locator: Locator): Promise<string | undefined> {
-  if ((await locator.count()) === 0) return undefined;
-  const text = (await locator.first().innerText()).trim();
-  return text || undefined;
-}
-
-async function extractSkills(page: Page): Promise<string[] | undefined> {
-  const rawSkills = await page
-    .locator('[class^="styles_key-skill__"] a')
-    .allInnerTexts();
+function uniqueNames(values: string[]): string[] | undefined {
   const unique = new Map<string, string>();
+  for (const value of values.map((item) => item.trim()).filter(Boolean)) unique.set(value.toLocaleLowerCase(), value);
+  return unique.size ? [...unique.values()] : undefined;
+}
 
-  for (const rawSkill of rawSkills) {
-    const skill = rawSkill.trim();
-    if (skill) unique.set(skill.toLocaleLowerCase(), skill);
+/** Builds a DetailedJob from Hirist's detail payload; throws when the JD is unusable. */
+export function mapJobDetail(job: Job, detail: HiristJobDetailRaw): DetailedJob {
+  const description = htmlToText(detail.introText ?? "");
+  if (description.length < MIN_DESCRIPTION_LENGTH) {
+    throw new Error(`description was missing or too short (${description.length} characters)`);
   }
-
-  const skills = [...unique.values()];
-  return skills.length > 0 ? skills : undefined;
+  const tags = detail.tags ?? [];
+  return {
+    ...job,
+    jobId: String(detail.id),
+    title: detail.title?.trim() || job.title,
+    company: detail.companyData?.companyName?.trim() || job.company,
+    location: formatLocation(detail),
+    experience: formatExperience(detail.min, detail.max) ?? job.experience,
+    jobUrl: job.jobUrl || hiristJobUrl(detail),
+    description,
+    skills: uniqueNames(tags.map((tag) => tag.name)),
+    mandatorySkills: uniqueNames(tags.filter((tag) => tag.isMandatory).map((tag) => tag.name)),
+    role: detail.jobdesignation?.trim() || undefined,
+    industry: detail.industry?.trim() || undefined,
+    employmentType: detail.workFromHome ? "Work from home possible" : undefined,
+    postedDate: detail.createdTimeMs ? new Date(detail.createdTimeMs).toISOString().slice(0, 10) : undefined,
+    ...classifyHiristJob(detail),
+  };
 }
 
-async function extractLabeledDetails(
-  page: Page
-): Promise<Map<string, string>> {
-  const rows = await page
-    .locator('[class^="styles_other-details__"] > [class^="styles_details__"]')
-    .allInnerTexts();
-  const details = new Map<string, string>();
-
-  for (const row of rows) {
-    const separator = row.indexOf(":");
-    if (separator < 0) continue;
-    const label = row.slice(0, separator).trim();
-    const value = row
-      .slice(separator + 1)
-      .trim()
-      .replace(/,\s*$/, "");
-    if (label && value) details.set(label, value);
-  }
-
-  return details;
-}
-
-async function extractEducation(page: Page): Promise<string[] | undefined> {
-  const rows = await page
-    .locator('[class^="styles_education__"] > [class^="styles_details__"]')
-    .allInnerTexts();
-  const education = rows.map((row) => row.trim()).filter(Boolean);
-  return education.length > 0 ? education : undefined;
-}
-
-async function extractHeaderValue(
-  page: Page,
-  label: string
-): Promise<string | undefined> {
-  return optionalText(
-    page
-      .getByText(label, { exact: true })
-      .first()
-      .locator("..").locator(":scope > span")
-  );
-}
-
-/** Opens one Naukri job and extracts only its complete description. */
-export async function getJobDetails(
-  page: Page,
-  job: Job
-): Promise<DetailedJob | null> {
+/** Fetches one Hirist job through the API and extracts its complete description. */
+export async function getJobDetails(client: HiristClient, job: Job): Promise<DetailedJob | null> {
   try {
-    const response = await page.goto(job.jobUrl, {
-      waitUntil: "domcontentloaded",
-      timeout: 60_000,
-    });
-
-    const currentUrl = new URL(page.url());
-    if (currentUrl.hostname !== "www.naukri.com") {
-      throw new Error(`navigation left Naukri: ${page.url()}`);
-    }
-    if (/login|register/i.test(currentUrl.pathname)) {
-      throw new Error("authentication may have expired: redirected to login");
-    }
-    if (response && !response.ok()) {
-      throw new Error(`job detail request returned HTTP ${response.status()}`);
-    }
-    if (!(await isNaukriAuthenticated(page, 30_000))) {
-      throw new Error("authentication could not be confirmed after navigation");
-    }
-
-    const heading = page.getByText("Job description", { exact: true }).first();
-    await heading.waitFor({ state: "visible", timeout: 30_000 });
-
-    // Live DOM: the heading wrapper's next sibling groups the narrative JD
-    // with separate metadata children. This class identifies only the JD;
-    // role/industry and education remain out of Checkpoint 3's description.
-    const descriptionContainer = heading
-      .locator("xpath=../following-sibling::div[1]")
-      .locator('[class^="styles_JDC__dang-inner-html"]');
-    await descriptionContainer.waitFor({ state: "visible", timeout: 30_000 });
-
-    const description = normalizeDescription(
-      await descriptionContainer.innerText()
-    );
-    if (description.length < MIN_DESCRIPTION_LENGTH) {
-      throw new Error(
-        `description was missing or too short (${description.length} characters)`
-      );
-    }
-
-    const details = await extractLabeledDetails(page);
-    const jobId = new URL(page.url()).pathname.match(/-(\d+)\/?$/)?.[1];
-    const application = await detectApplicationType(page);
-
-    return {
-      ...job,
-      description,
-      skills: await extractSkills(page),
-      role: details.get("Role"),
-      industry: details.get("Industry Type"),
-      department: details.get("Department"),
-      employmentType: details.get("Employment Type"),
-      roleCategory: details.get("Role Category"),
-      education: await extractEducation(page),
-      postedDate: await extractHeaderValue(page, "Posted:"),
-      openings: await extractHeaderValue(page, "Openings:"),
-      jobId,
-      ...application,
-    };
+    if (!job.jobId) throw new Error("job has no Hirist job id");
+    const detail = await client.jobDetail(job.jobId);
+    if (!detail) throw new Error("Hirist returned no job detail (removed or unavailable)");
+    return mapJobDetail(job, detail);
   } catch (error) {
     console.warn(`Description extraction failed: ${job.title} — ${job.company}`);
     console.warn(`URL: ${job.jobUrl}`);
@@ -168,35 +91,22 @@ export async function getJobDetails(
   }
 }
 
-/** Extracts job details sequentially on one page; failures remain isolated. */
-export async function getJobsDetails(
-  page: Page,
-  jobs: Job[]
-): Promise<DetailedJob[]> {
+/** Extracts job details sequentially; failures remain isolated. */
+export async function getJobsDetails(client: HiristClient, jobs: Job[]): Promise<DetailedJob[]> {
   const results: DetailedJob[] = [];
 
   for (const [index, job] of jobs.entries()) {
     console.log(`[${index + 1}/${jobs.length}] ${job.title} — ${job.company}`);
-
-    try {
-      const detailedJob = await getJobDetails(page, job);
-      if (!detailedJob) {
-        console.log("Status: FAILED\n");
-        continue;
-      }
-
-      results.push(detailedJob);
-      console.log("Status: OK");
-      console.log(`Description: ${detailedJob.description.length} chars`);
-      console.log(`Skills: ${detailedJob.skills?.length ?? 0}`);
-      console.log(`Application type: ${detailedJob.applicationType}\n`);
-    } catch (error) {
-      // Defensive isolation: getJobDetails normally converts failures to null,
-      // but an unexpected error must not stop the remaining jobs.
-      console.warn("Status: FAILED");
-      console.warn(error instanceof Error ? error.message : String(error));
-      console.log();
+    const detailedJob = await getJobDetails(client, job);
+    if (!detailedJob) {
+      console.log("Status: FAILED\n");
+      continue;
     }
+    results.push(detailedJob);
+    console.log("Status: OK");
+    console.log(`Description: ${detailedJob.description.length} chars`);
+    console.log(`Skills: ${detailedJob.skills?.length ?? 0} (${detailedJob.mandatorySkills?.length ?? 0} mandatory)`);
+    console.log(`Application type: ${detailedJob.applicationType}${detailedJob.screeningRequired ? " (screening)" : ""}\n`);
   }
 
   return results;

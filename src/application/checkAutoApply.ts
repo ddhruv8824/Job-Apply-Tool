@@ -1,21 +1,21 @@
 import type { ApplyResult, ReadyToApplyJob } from "./application.js";
 import type { MatchResult } from "../matching/match.schema.js";
-import type { DetailedJob } from "../naukri/getJobDetails.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
 import { evaluateAutoApplyEligibility, getAutoApplyPolicy, HARD_AUTO_APPLY_LIMIT, rankAutoApplyCandidates } from "./autoApplyPolicy.js";
 import { runUnattendedAutoApply, type AutoApplyDependencies } from "./autoApply.js";
 
 function expect(condition: boolean, message: string): void { if (!condition) throw new Error(message); }
-function job(id: number, applicationType: DetailedJob["applicationType"] = "NAUKRI_DIRECT"): DetailedJob {
+function job(id: number, applicationType: DetailedJob["applicationType"] = "HIRIST_DIRECT"): DetailedJob {
   return { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, location: "Pune",
-    jobUrl: `https://www.naukri.com/job-${id}`, description: "Description", applicationType };
+    jobUrl: `https://www.hirist.tech/j/job-${id}`, description: "Description", applicationType };
 }
 function match(id: number, score = 90, recommendation: MatchResult["recommendation"] = "APPLY"): MatchResult {
-  return { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, jobUrl: `https://www.naukri.com/job-${id}`,
+  return { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, jobUrl: `https://www.hirist.tech/j/job-${id}`,
     overallScore: score, skillMatchScore: score, experienceMatchScore: score, roleMatchScore: score,
     responsibilityMatchScore: score, skillMatches: [], unknownSkills: [], hardMissingRequirements: [], matchedSkills: [],
     missingRequiredSkills: [], missingPreferredSkills: [], matchedEvidence: [], strengths: [], concerns: [], recommendation, reason: "test" };
 }
-function ready(id: number, score = 90, applicationType: DetailedJob["applicationType"] = "NAUKRI_DIRECT", recommendation: MatchResult["recommendation"] = "APPLY"): ReadyToApplyJob {
+function ready(id: number, score = 90, applicationType: DetailedJob["applicationType"] = "HIRIST_DIRECT", recommendation: MatchResult["recommendation"] = "APPLY"): ReadyToApplyJob {
   return { job: job(id, applicationType), match: match(id, score, recommendation) };
 }
 
@@ -61,12 +61,14 @@ expect(rankAutoApplyCandidates([ready(1, 87), ready(2, 96), ready(3, 91), ready(
 
 const policyInput = (candidate: ReadyToApplyJob, databaseStatus: string | null = "READY_TO_APPLY") => ({ candidate, databaseStatus, policy: enabledPolicy,
   databaseHealthy: true, cdpHealthy: true, authenticated: true, dailyAllowance: 3, runAllowance: 3 });
-expect(!evaluateAutoApplyEligibility(policyInput(ready(1, 82, "NAUKRI_DIRECT", "REVIEW"))).eligible, "REVIEW became eligible");
-expect(!evaluateAutoApplyEligibility(policyInput(ready(1, 60, "NAUKRI_DIRECT", "SKIP"))).eligible, "SKIP became eligible");
+expect(!evaluateAutoApplyEligibility(policyInput(ready(1, 82, "HIRIST_DIRECT", "REVIEW"))).eligible, "REVIEW became eligible");
+expect(!evaluateAutoApplyEligibility(policyInput(ready(1, 60, "HIRIST_DIRECT", "SKIP"))).eligible, "SKIP became eligible");
 expect(!evaluateAutoApplyEligibility(policyInput(ready(1, 99, "EXTERNAL_COMPANY"))).eligible, "External became eligible");
 expect(!evaluateAutoApplyEligibility(policyInput(ready(1, 99, "UNKNOWN"))).eligible, "Unknown type became eligible");
 expect(!evaluateAutoApplyEligibility(policyInput(ready(1, 100), "APPLIED")).eligible, "APPLIED became eligible");
 expect(!evaluateAutoApplyEligibility(policyInput(ready(1, 100), "ALREADY_APPLIED")).eligible, "ALREADY_APPLIED became eligible");
+const screening = ready(1, 99); screening.job.screeningRequired = true;
+expect(evaluateAutoApplyEligibility(policyInput(screening)).reasons.includes("SCREENING_REQUIRED"), "Screening job became eligible for unattended apply");
 
 let state = harness();
 let result = await runUnattendedAutoApply({ policy: getAutoApplyPolicy({}), staleMinutes: 180, dependencies: dependencies(state) });

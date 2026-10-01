@@ -1,12 +1,14 @@
-import { connectToChrome } from "./naukri/browser.js";
+import { createHiristClient, pageTransport } from "./hirist/api.js";
+import { connectToChrome } from "./hirist/browser.js";
 import {
-  ensureNaukriAuthenticated,
-} from "./naukri/auth.js";
-import { searchJobs, type Job } from "./naukri/searchJobs.js";
+  ensureHiristAuthenticated,
+} from "./hirist/auth.js";
+import { resolveLocationIds } from "./hirist/locations.js";
+import { searchJobsPage, type Job } from "./hirist/searchJobs.js";
 import {
   getJobsDetails,
   type DetailedJob,
-} from "./naukri/getJobDetails.js";
+} from "./hirist/getJobDetails.js";
 
 const searchConfig = {
   keyword: "Frontend Developer",
@@ -21,22 +23,22 @@ async function main() {
   const { page } = await connectToChrome();
   console.log("Connected.\n");
 
-  console.log("Opening Naukri...");
-  await ensureNaukriAuthenticated(page);
+  console.log("Opening Hirist...");
+  await ensureHiristAuthenticated(page);
 
-  console.log("Searching Naukri...\n");
-  const jobs: Job[] = await searchJobs(
-    page,
-    searchConfig.keyword,
-    searchConfig.location,
-    searchConfig.maxJobs
+  console.log("Searching Hirist...\n");
+  const client = createHiristClient(pageTransport(page));
+  const { jobs }: { jobs: Job[] } = await searchJobsPage(
+    client,
+    { keyword: searchConfig.keyword, locationIds: resolveLocationIds(searchConfig.location) },
+    0
   );
 
   const jobsToDetail = jobs.slice(0, searchConfig.maxJobs);
   console.log(`Found ${jobsToDetail.length} jobs\n`);
   console.log("Extracting details...\n");
 
-  const detailedJobs: DetailedJob[] = await getJobsDetails(page, jobsToDetail);
+  const detailedJobs: DetailedJob[] = await getJobsDetails(client, jobsToDetail);
 
   console.log("Phase 2 Batch Summary\n");
   console.log(`Jobs attempted: ${jobsToDetail.length}`);

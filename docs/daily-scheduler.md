@@ -6,8 +6,9 @@
 
 1. Configure `DATABASE_URL` and apply the Prisma migrations.
 2. Keep PostgreSQL running.
-3. Start the manually managed Chrome profile with CDP port 9222.
-4. Log into Naukri manually in that Chrome profile.
+3. Start the manually managed Chrome profile with CDP port 9222:
+   `"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\hirist-agent-profile"`
+4. Log into hirist.tech manually in that Chrome profile (and complete your Hirist profile so Apply is not redirected to registration).
 5. Verify one cycle from a terminal with `npm run daily`.
 
 The command exits non-zero before browser or AI work if PostgreSQL is unavailable. It also refuses overlapping recent daily runs and marks stale daily runs failed before proceeding.

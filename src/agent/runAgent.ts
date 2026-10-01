@@ -42,7 +42,7 @@ async function main(): Promise<void> {
   console.log("JOB PIPELINE SUMMARY");
   console.log("================================\n");
   console.log(`Jobs discovered: ${summary?.totalJobs ?? 0}`);
-  console.log(`Naukri Direct: ${summary?.directJobs ?? 0}`);
+  console.log(`Hirist Direct: ${summary?.directJobs ?? 0}`);
   console.log(`External Company: ${summary?.externalJobs ?? 0}`);
   console.log(`Walk-in: ${summary?.walkInJobs ?? 0}`);
   console.log(`Unknown: ${summary?.unknownJobs ?? 0}`);

@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { loadEnvFile } from "node:process";
-import { applyToNaukriJob } from "../naukri/applyToJob.js";
+import { applyToHiristJob } from "../hirist/applyToJob.js";
 import { createJobAgentGraph, initialJobAgentState } from "../agent/graph.js";
 import { createProductionDependencies } from "../agent/productionDependencies.js";
 import { isDryRun, type ApplyResult, type ReadyToApplyJob } from "./application.js";
@@ -27,14 +27,14 @@ function printReady(eligible: ReadyToApplyJob[], selected: ReadyToApplyJob): voi
   console.log(`Application Type: ${selected.job.applicationType}`);
   console.log(`Matched Skills: ${selected.match.matchedSkills.join(", ") || "None"}`);
   console.log(`Missing Required: ${selected.match.missingRequiredSkills.join(", ") || "None"}`);
-  console.log(`Naukri URL: ${selected.job.jobUrl}\n`);
+  console.log(`Hirist URL: ${selected.job.jobUrl}\n`);
 }
 
 const dependencies = createProductionDependencies();
 const result = await createJobAgentGraph(dependencies).invoke(initialJobAgentState());
 const selected = result.selectedApplication;
 if (!selected) {
-  console.log("No Naukri Direct APPLY candidates found.");
+  console.log("No Hirist Direct APPLY candidates found.");
   process.exit(0);
 }
 printReady(result.readyToApplyJobs, selected);
@@ -42,7 +42,7 @@ printReady(result.readyToApplyJobs, selected);
 const dryRun = isDryRun();
 let approval: string | undefined;
 if (!dryRun) {
-  console.log("This will click the Naukri Apply button once.");
+  console.log("This will click the Hirist Apply button once.");
   const terminal = createInterface({ input, output });
   approval = await terminal.question("Proceed? (yes/no): ");
   terminal.close();
@@ -57,10 +57,10 @@ try {
   applicationResult = await runApplicationGate({
     dryRun,
     approval,
-    verifyDryRun: () => applyToNaukriJob(page, selected.job, true),
+    verifyDryRun: () => applyToHiristJob(page, selected.job, true),
     applyLive: async () => {
       if (await hasAlreadyApplied(selected.job)) return { status: "ALREADY_APPLIED", message: "Persistent history blocks a duplicate application." };
-      return applyToNaukriJob(page, selected.job, false, () => recordApplicationAttempt(selected.job).then(() => undefined));
+      return applyToHiristJob(page, selected.job, false, () => recordApplicationAttempt(selected.job).then(() => undefined));
     },
   });
   if (applicationResult) await saveApplyResult(selected.job, applicationResult);

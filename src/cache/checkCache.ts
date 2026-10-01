@@ -1,6 +1,6 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { DetailedJob } from "../naukri/getJobDetails.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
 import type { CandidateProfile } from "../resume/candidateProfile.schema.js";
 import type { JobMatchAnalysis } from "../matching/match.schema.js";
 import { loadCandidateProfileCache, saveCandidateProfileCache } from "./candidateProfileCache.js";
@@ -24,8 +24,8 @@ await writeFile(path.join(root, "candidate-profile.json"), "{broken", "utf8");
 expect(await loadCandidateProfileCache("resume-a") === null, "Corrupt candidate cache must miss");
 
 const job: DetailedJob = {
-  title: "Frontend Developer", company: "Test Company", location: "Pune", jobUrl: "https://www.naukri.com/test",
-  description: "React is required.", jobId: "cache-test-job", applicationType: "NAUKRI_DIRECT",
+  title: "Frontend Developer", company: "Test Company", location: "Pune", jobUrl: "https://www.hirist.tech/j/test",
+  description: "React is required.", jobId: "cache-test-job", applicationType: "HIRIST_DIRECT",
 };
 const analysis: JobMatchAnalysis = {
   requirements: [{ name: "React", importance: "REQUIRED", category: "CORE_TECHNICAL", importanceConfidence: 0.99, mandatoryEvidence: "React is required" }],

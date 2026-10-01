@@ -50,7 +50,7 @@ export async function callLlm(messages: LlmMessage[]): Promise<string> {
   let response: Response;
   try {
     await waitForRequestWindow();
-    response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
+    response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent", {
       method: "POST",
       headers: {
         "x-goog-api-key": apiKey,

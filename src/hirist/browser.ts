@@ -4,11 +4,12 @@ import {
   type BrowserContext,
   type Page,
 } from "playwright";
+import { HIRIST_ORIGIN, isHiristUrl } from "./api.js";
 
 const CDP_ENDPOINT = "http://localhost:9222";
 const CHROME_COMMAND =
   '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" ' +
-  '--remote-debugging-port=9222 --user-data-dir="C:\\naukri-agent-profile"';
+  '--remote-debugging-port=9222 --user-data-dir="C:\\hirist-agent-profile"';
 
 export type Session = {
   browser: Browser;
@@ -41,23 +42,22 @@ export async function connectToChrome(): Promise<Session> {
 
   const pages = context.pages();
   const page =
-    pages.find((candidate) => candidate.url().includes("naukri.com")) ??
-    pages[0] ??
+    pages.find((candidate) => isHiristUrl(candidate.url())) ??
     (await context.newPage());
 
   return { browser, context, page };
 }
 
-/** Opens the Naukri home page, with a clearer error if the site is unreachable. */
-export async function openNaukri(page: Page): Promise<void> {
+/** Opens the Hirist home page, with a clearer error if the site is unreachable. */
+export async function openHirist(page: Page): Promise<void> {
   try {
-    await page.goto("https://www.naukri.com/", {
+    await page.goto(`${HIRIST_ORIGIN}/`, {
       waitUntil: "domcontentloaded",
       timeout: 60_000,
     });
   } catch (error) {
     throw new Error(
-      "Could not load naukri.com - check your internet connection. " +
+      "Could not load hirist.tech - check your internet connection. " +
         `(${error instanceof Error ? error.message : error})`
     );
   }

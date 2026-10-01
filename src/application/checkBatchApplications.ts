@@ -1,11 +1,11 @@
 import type { MatchResult } from "../matching/match.schema.js";
-import type { DetailedJob } from "../naukri/getJobDetails.js";
+import type { DetailedJob } from "../hirist/getJobDetails.js";
 import type { ApplyResult, ReadyToApplyJob } from "./application.js";
 import { getBatchMaxApplications, HARD_BATCH_MAX_APPLICATIONS, isBatchDryRun, runControlledBatch, selectEligibleApplications, type BatchDependencies } from "./batch.js";
 
 function expect(condition: boolean, message: string): void { if (!condition) throw new Error(message); }
-function detailed(id: number): DetailedJob { return { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, location: "Pune", jobUrl: `https://www.naukri.com/job-${id}`, description: "Description", applicationType: "NAUKRI_DIRECT" }; }
-function match(id: number, score: number): MatchResult { return { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, jobUrl: `https://www.naukri.com/job-${id}`, overallScore: score, skillMatchScore: score, experienceMatchScore: score, roleMatchScore: score, responsibilityMatchScore: score, skillMatches: [], unknownSkills: [], hardMissingRequirements: [], matchedSkills: [], missingRequiredSkills: [], missingPreferredSkills: [], matchedEvidence: [], strengths: [], concerns: [], recommendation: score >= 85 ? "APPLY" : score >= 70 ? "REVIEW" : "SKIP", reason: "test" }; }
+function detailed(id: number): DetailedJob { return { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, location: "Pune", jobUrl: `https://www.hirist.tech/j/job-${id}`, description: "Description", applicationType: "HIRIST_DIRECT" }; }
+function match(id: number, score: number): MatchResult { return { jobId: String(id), title: `Job ${id}`, company: `Company ${id}`, jobUrl: `https://www.hirist.tech/j/job-${id}`, overallScore: score, skillMatchScore: score, experienceMatchScore: score, roleMatchScore: score, responsibilityMatchScore: score, skillMatches: [], unknownSkills: [], hardMissingRequirements: [], matchedSkills: [], missingRequiredSkills: [], missingPreferredSkills: [], matchedEvidence: [], strengths: [], concerns: [], recommendation: score >= 85 ? "APPLY" : score >= 70 ? "REVIEW" : "SKIP", reason: "test" }; }
 function ready(id: number, score = 90): ReadyToApplyJob { return { job: detailed(id), match: match(id, score) }; }
 
 const ordered = selectEligibleApplications([detailed(1), detailed(2), detailed(3), detailed(4)], [match(1, 89), match(2, 96), match(3, 91), match(4, 87)], 3);

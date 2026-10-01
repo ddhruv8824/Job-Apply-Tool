@@ -20,16 +20,16 @@ const createdJobIds: string[] = [];
 const createdRunIds: string[] = [];
 
 try {
-  const url = `https://www.naukri.com/frontend-developer-${suffix}-123456789`;
-  const first = await upsertJob({ naukriJobId: `id-${suffix}`, jobUrl: url, title: "Frontend Developer", company: "ABC", location: "Pune", applicationType: "NAUKRI_DIRECT" }, db);
+  const url = `https://www.hirist.tech/j/frontend-developer-${suffix}-123456789`;
+  const first = await upsertJob({ hiristJobId: `id-${suffix}`, jobUrl: url, title: "Frontend Developer", company: "ABC", location: "Pune", applicationType: "HIRIST_DIRECT" }, db);
   createdJobIds.push(first.id);
-  const duplicate = await upsertJob({ naukriJobId: `id-${suffix}`, jobUrl: url, title: "Frontend Developer", company: "ABC", location: "Pune", applicationType: "NAUKRI_DIRECT" }, db);
-  expect(first.id === duplicate.id, "naukriJobId dedup failed");
+  const duplicate = await upsertJob({ hiristJobId: `id-${suffix}`, jobUrl: url, title: "Frontend Developer", company: "ABC", location: "Pune", applicationType: "HIRIST_DIRECT" }, db);
+  expect(first.id === duplicate.id, "hiristJobId dedup failed");
 
   const fallbackUrl = `https://example.test/jobs/${suffix}`;
-  const fallback = await upsertJob({ jobUrl: fallbackUrl, title: "React Developer", company: "XYZ", location: "Not specified", applicationType: "NAUKRI_DIRECT" }, db);
+  const fallback = await upsertJob({ jobUrl: fallbackUrl, title: "React Developer", company: "XYZ", location: "Not specified", applicationType: "HIRIST_DIRECT" }, db);
   createdJobIds.push(fallback.id);
-  const fallbackDuplicate = await upsertJob({ jobUrl: fallbackUrl, title: "React Developer", company: "XYZ", location: "Not specified", applicationType: "NAUKRI_DIRECT" }, db);
+  const fallbackDuplicate = await upsertJob({ jobUrl: fallbackUrl, title: "React Developer", company: "XYZ", location: "Not specified", applicationType: "HIRIST_DIRECT" }, db);
   expect(fallback.id === fallbackDuplicate.id, "jobUrl fallback dedup failed");
 
   await ensureApplicationStatus(first.id, "APPLIED", db);

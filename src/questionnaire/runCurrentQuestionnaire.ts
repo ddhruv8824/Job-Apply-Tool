@@ -2,14 +2,14 @@ import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { loadApplicationProfile } from "../application/loadApplicationProfile.js";
-import { isNaukriAuthenticated } from "../naukri/auth.js";
-import { connectToChrome } from "../naukri/browser.js";
+import { isHiristAuthenticated } from "../hirist/auth.js";
+import { connectToChrome } from "../hirist/browser.js";
 import { extractResumeText } from "../resume/parseResume.js";
 import { getCandidateProfile } from "../resume/getCandidateProfile.js";
 import { runQuestionnaire } from "./runQuestionnaire.js";
 
 const session = await connectToChrome();
-if (!(await isNaukriAuthenticated(session.page))) throw new Error("The current Naukri tab is not authenticated. Log in manually and retry.");
+if (!(await isHiristAuthenticated(session.page))) throw new Error("The current Hirist tab is not authenticated. Log in manually and retry.");
 const terminal = createInterface({ input, output });
 try {
   const candidateProfile = await getCandidateProfile(await extractResumeText(path.resolve("data", "DhruvCVU.pdf")));

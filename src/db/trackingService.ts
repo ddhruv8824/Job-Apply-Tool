@@ -1,6 +1,6 @@
 import type { MatchResult } from "../matching/match.schema.js";
-import type { DirectJobDiscoveryResult } from "../naukri/discoverDirectJobs.js";
-import type { Job } from "../naukri/searchJobs.js";
+import type { DirectJobDiscoveryResult } from "../hirist/discoverDirectJobs.js";
+import type { Job } from "../hirist/searchJobs.js";
 import type { DatabaseClient } from "./prisma.js";
 import { prisma } from "./prisma.js";
 import { ensureApplicationStatus, hasAlreadyApplied, saveMatchResult } from "./applicationRepository.js";
@@ -10,7 +10,7 @@ export type HistoryFilterResult = { processableJobs: Job[]; previouslyAppliedJob
 
 export async function persistDiscovery(result: DirectJobDiscoveryResult, db: DatabaseClient = prisma): Promise<void> {
   for (const job of result.directJobs) {
-    const persisted = await upsertJob({ ...job, applicationType: "NAUKRI_DIRECT" }, db);
+    const persisted = await upsertJob({ ...job, applicationType: "HIRIST_DIRECT" }, db);
     await ensureApplicationStatus(persisted.id, "DIRECT_FOUND", db);
   }
   for (const job of result.manualJobs) {

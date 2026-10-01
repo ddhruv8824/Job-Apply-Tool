@@ -51,7 +51,9 @@ export function evaluateAutoApplyEligibility(input: {
   if (!input.authenticated) reasons.push("AUTH_REQUIRED");
   if (input.dailyAllowance <= 0) reasons.push("DAILY_LIMIT_REACHED");
   if (input.runAllowance <= 0) reasons.push("RUN_LIMIT_REACHED");
-  if (input.candidate.job.applicationType !== "NAUKRI_DIRECT") reasons.push("APPLICATION_TYPE_NOT_DIRECT");
+  if (input.candidate.job.applicationType !== "HIRIST_DIRECT") reasons.push("APPLICATION_TYPE_NOT_DIRECT");
+  // Unattended mode never answers screening questions, so these would only consume the daily allowance.
+  if (input.candidate.job.screeningRequired) reasons.push("SCREENING_REQUIRED");
   if (input.candidate.match.recommendation !== "APPLY") reasons.push("RECOMMENDATION_NOT_APPLY");
   if (input.candidate.match.overallScore < input.policy.minimumScore) reasons.push("SCORE_BELOW_THRESHOLD");
   if (input.databaseStatus === "APPLIED") reasons.push("STATUS_APPLIED");

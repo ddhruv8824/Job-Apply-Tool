@@ -36,7 +36,7 @@ assert.doesNotThrow(() => assertQuestionnaireMutationAllowed({ QUESTIONNAIRE_DRY
 
 const requiredLocation = { ...text, required: true };
 function runtime(question = requiredLocation): { value: QuestionnaireRuntime; counts: { fills: number; submits: number }; setUrl: (value: string) => void; setValid: (value: boolean) => void; setApplied: (value: boolean) => void } {
-  const counts = { fills: 0, submits: 0 }; let url = "https://www.naukri.com/job-123"; let valid = true; let applied = false;
+  const counts = { fills: 0, submits: 0 }; let url = "https://www.hirist.tech/j/job-123"; let valid = true; let applied = false;
   return { counts, setUrl: (value) => { url = value; }, setValid: (value) => { valid = value; }, setApplied: (value) => { applied = value; }, value: {
     url: () => url, authenticated: async () => true, challengeVisible: async () => false, applied: async () => applied,
     extract: async () => [question], fill: async () => { counts.fills += 1; }, validate: async () => valid ? { valid: true } : { valid: false, message: "mismatch" },

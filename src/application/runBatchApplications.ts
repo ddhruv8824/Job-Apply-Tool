@@ -35,14 +35,14 @@ try {
 const [
   { createJobAgentGraph, initialJobAgentState },
   { createProductionDependencies },
-  { applyToNaukriJob },
+  { applyToHiristJob },
   applicationRepository,
   { loadApplicationProfile },
   { runQuestionnaire, isQuestionnaireDryRun },
 ] = await Promise.all([
   import("../agent/graph.js"),
   import("../agent/productionDependencies.js"),
-  import("../naukri/applyToJob.js"),
+  import("../hirist/applyToJob.js"),
   import("../db/applicationRepository.js"),
   import("./loadApplicationProfile.js"),
   import("../questionnaire/runQuestionnaire.js"),
@@ -137,7 +137,7 @@ try {
       databaseHealthy: async () => { try { await prisma.$queryRaw`SELECT 1`; return true; } catch { return false; } },
       getDatabaseStatus: async (item) => (await applicationRepository.getApplicationByJob(item.job))?.status ?? null,
       hasAlreadyApplied: (item) => applicationRepository.hasAlreadyApplied(item.job),
-      applyOnce: async (item, onAttempt) => applyToNaukriJob(await getPage(), item.job, false, async () => {
+      applyOnce: async (item, onAttempt) => applyToHiristJob(await getPage(), item.job, false, async () => {
           await applicationRepository.recordApplicationAttempt(item.job);
           onAttempt();
         }),

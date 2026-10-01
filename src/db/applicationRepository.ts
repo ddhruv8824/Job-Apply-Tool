@@ -1,7 +1,7 @@
 import type { ApplicationStatus } from "../generated/prisma/enums.js";
 import type { ApplyResult } from "../application/application.js";
 import type { MatchResult } from "../matching/match.schema.js";
-import type { Job } from "../naukri/searchJobs.js";
+import type { Job } from "../hirist/searchJobs.js";
 import type { DatabaseClient } from "./prisma.js";
 import { prisma } from "./prisma.js";
 import { getJobHistory } from "./jobRepository.js";

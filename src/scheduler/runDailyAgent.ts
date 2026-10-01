@@ -20,10 +20,10 @@ catch {
   process.exit(1);
 }
 const { prisma } = prismaModule;
-const [runRepository, { connectToChrome }, { preflightNaukriAuthentication }, { createJobAgentGraph, initialJobAgentState }, { createProductionDependencies }] = await Promise.all([
+const [runRepository, { connectToChrome }, { preflightHiristAuthentication }, { createJobAgentGraph, initialJobAgentState }, { createProductionDependencies }] = await Promise.all([
   import("../db/runRepository.js"),
-  import("../naukri/browser.js"),
-  import("../naukri/auth.js"),
+  import("../hirist/browser.js"),
+  import("../hirist/auth.js"),
   import("../agent/graph.js"),
   import("../agent/productionDependencies.js"),
 ]);
@@ -40,7 +40,7 @@ const result = await runDailyExecution({
     prepareDailyRun: (minutes) => runRepository.prepareDailyRun(minutes),
     createRun: () => runRepository.createAgentRun(keyword, location, prisma, "DAILY_DISCOVERY"),
     connectChrome: async () => { page = (await connectToChrome()).page; },
-    authenticationReady: async () => page ? preflightNaukriAuthentication(page) : false,
+    authenticationReady: async () => page ? preflightHiristAuthentication(page) : false,
     runPipeline: async () => {
       if (!page) throw new Error("CDP_UNAVAILABLE");
       return createJobAgentGraph(createProductionDependencies(page)).invoke(initialJobAgentState());
@@ -61,8 +61,8 @@ if (result.status === "REFUSED") {
 }
 if (result.status === "FAILED") {
   if (result.reason === "DATABASE_UNAVAILABLE") console.error("Daily run aborted.\nDatabase unavailable.\nNo browser or AI activity performed.");
-  else if (result.reason === "CDP_UNAVAILABLE") console.error("Chrome CDP unavailable.\nStart the manually managed Naukri Chrome profile.\nNo application actions performed.");
-  else if (result.reason === "AUTH_REQUIRED") console.error("Naukri authentication required.\nNo application actions performed.");
+  else if (result.reason === "CDP_UNAVAILABLE") console.error("Chrome CDP unavailable.\nStart the manually managed Hirist Chrome profile.\nNo application actions performed.");
+  else if (result.reason === "AUTH_REQUIRED") console.error("Hirist authentication required.\nNo application actions performed.");
   else console.error(`Daily run failed: ${result.reason ?? "UNKNOWN"}`);
   await prisma.$disconnect();
   process.exit(1);

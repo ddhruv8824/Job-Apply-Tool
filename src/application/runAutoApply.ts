@@ -28,11 +28,11 @@ try { await prisma.$queryRaw`SELECT 1`; } catch {
   process.exit(1);
 }
 
-const [runRepository, applicationRepository, trackingService, { connectToChrome }, { preflightNaukriAuthentication },
-  { createJobAgentGraph, initialJobAgentState }, { createProductionDependencies }, { applyToNaukriJob }] = await Promise.all([
+const [runRepository, applicationRepository, trackingService, { connectToChrome }, { preflightHiristAuthentication },
+  { createJobAgentGraph, initialJobAgentState }, { createProductionDependencies }, { applyToHiristJob }] = await Promise.all([
   import("../db/runRepository.js"), import("../db/applicationRepository.js"), import("../db/trackingService.js"),
-  import("../naukri/browser.js"), import("../naukri/auth.js"), import("../agent/graph.js"),
-  import("../agent/productionDependencies.js"), import("../naukri/applyToJob.js"),
+  import("../hirist/browser.js"), import("../hirist/auth.js"), import("../agent/graph.js"),
+  import("../agent/productionDependencies.js"), import("../hirist/applyToJob.js"),
 ]);
 
 const keyword = process.env.JOB_KEYWORD?.trim() || "Frontend Developer";
@@ -48,7 +48,7 @@ const result = await runUnattendedAutoApply({
     createRun: () => runRepository.createAgentRun(keyword, location, prisma, "UNATTENDED_AUTO_APPLY"),
     countAttemptsToday: () => applicationRepository.countApplicationAttemptsToday(),
     connectChrome: async () => { page = (await connectToChrome()).page; },
-    authenticationReady: async () => page ? preflightNaukriAuthentication(page) : false,
+    authenticationReady: async () => page ? preflightHiristAuthentication(page) : false,
     loadCandidates: async () => {
       if (!page) throw new Error("CDP_UNAVAILABLE");
       const graph = await createJobAgentGraph(createProductionDependencies(page)).invoke(initialJobAgentState());
@@ -57,7 +57,7 @@ const result = await runUnattendedAutoApply({
     getDatabaseStatus: async (item) => (await applicationRepository.getApplicationByJob(item.job))?.status ?? null,
     applyOnce: async (item, recordClick) => {
       if (!page) throw new Error("CDP_UNAVAILABLE");
-      return applyToNaukriJob(page, item.job, false, recordClick);
+      return applyToHiristJob(page, item.job, false, recordClick);
     },
     recordActualClick: async (item) => { await applicationRepository.recordApplicationAttempt(item.job, prisma, "UNATTENDED_AUTO_APPLY"); },
     persistResult: async (item, applyResult) => { await applicationRepository.saveUnattendedApplyResult(item.job, applyResult); },
